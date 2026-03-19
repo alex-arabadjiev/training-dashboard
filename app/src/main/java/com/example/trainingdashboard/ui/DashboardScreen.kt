@@ -3,15 +3,22 @@ package com.example.trainingdashboard.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.trainingdashboard.notification.ReminderScheduler
@@ -39,7 +47,7 @@ import com.example.trainingdashboard.viewmodel.DashboardViewModel
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsState()
-    var showTimePicker by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     Scaffold(
@@ -47,7 +55,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
             TopAppBar(
                 title = { Text("Training Dashboard") },
                 actions = {
-                    IconButton(onClick = { showTimePicker = true }) {
+                    IconButton(onClick = { showSettings = true }) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "Reminder settings"
@@ -92,27 +100,61 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
         }
     }
 
-    if (showTimePicker) {
+    if (showSettings) {
+        var dayText by remember { mutableStateOf(state.dayNumber.toString()) }
         val timePickerState = rememberTimePickerState(
             initialHour = state.reminderHour,
             initialMinute = state.reminderMinute
         )
 
         AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            title = { Text("Set Reminder Time") },
-            text = { TimePicker(state = timePickerState) },
+            onDismissRequest = { showSettings = false },
+            title = { Text("Settings") },
+            text = {
+                Column {
+                    Text(
+                        text = "Current Day",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = dayText,
+                        onValueChange = { value ->
+                            if (value.isEmpty() || value.all { it.isDigit() }) {
+                                dayText = value
+                            }
+                        },
+                        label = { Text("Day number") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Reminder Time",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TimePicker(state = timePickerState)
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
+                    val newDay = dayText.toIntOrNull()
+                    if (newDay != null && newDay >= 1) {
+                        viewModel.setCurrentDay(newDay)
+                    }
                     viewModel.updateReminderTime(timePickerState.hour, timePickerState.minute)
                     ReminderScheduler.schedule(context, timePickerState.hour, timePickerState.minute)
-                    showTimePicker = false
+                    showSettings = false
                 }) {
                     Text("Save")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) {
+                TextButton(onClick = { showSettings = false }) {
                     Text("Cancel")
                 }
             }
