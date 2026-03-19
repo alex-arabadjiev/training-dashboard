@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.trainingdashboard.TrainingApp
 import com.example.trainingdashboard.data.PreferencesRepository
 import com.example.trainingdashboard.data.db.DailyCompletion
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,8 +40,15 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    private var loadJob: Job? = null
+
     init {
-        viewModelScope.launch {
+        loadDashboard()
+    }
+
+    private fun loadDashboard() {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             val startDate = ensureStartDate()
             val dayNumber = computeDayNumber(startDate)
 
@@ -78,6 +86,15 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     completed = !exercise.isCompleted
                 )
             )
+        }
+    }
+
+    fun setCurrentDay(day: Int) {
+        if (day < 1) return
+        viewModelScope.launch {
+            val newStartDate = LocalDate.now().minusDays((day - 1).toLong())
+            prefsRepo.setStartDate(newStartDate)
+            loadDashboard()
         }
     }
 
