@@ -32,3 +32,24 @@ jobs:
 
       - name: Run unit tests
         run: gradle test
+
+      - name: Upload APK to Appetize.io
+        if: success()
+        env:
+          APPETIZE_API_TOKEN: ${{ secrets.APPETIZE_API_TOKEN }}
+        run: |
+          curl --fail --silent --show-error \
+            "https://api.appetize.io/v2/apps" \
+            -H "Authorization: Bearer $APPETIZE_API_TOKEN" \
+            -H "Content-Type: multipart/form-data" \
+            -F "file=@app/build/outputs/apk/debug/app-debug.apk" \
+            -F "platform=android" \
+            -F "note=PR #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}" \
+            | tee /tmp/appetize-response.json
+          APP_URL=$(cat /tmp/appetize-response.json | python3 -c "import sys,json; print(json.load(sys.stdin)['appVersions'][0]['publicURL'])" 2>/dev/null || echo "")
+          echo "### Appetize Preview" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$APP_URL" ]; then
+            echo "Test this build: $APP_URL" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Upload complete. Check [Appetize dashboard](https://appetize.io/apps) for the build." >> "$GITHUB_STEP_SUMMARY"
+          fi
