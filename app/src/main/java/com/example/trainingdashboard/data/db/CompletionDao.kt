@@ -14,6 +14,9 @@ interface CompletionDao {
     @Upsert
     suspend fun upsertCompletion(completion: DailyCompletion)
 
+    @Query("UPDATE daily_completions SET completedCount = :count, completed = :completed WHERE dayNumber = :day AND exercise = :exercise")
+    suspend fun updateCount(day: Int, exercise: String, count: Int, completed: Boolean)
+
     @Query(
         """
         SELECT DISTINCT dayNumber FROM daily_completions

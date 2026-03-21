@@ -18,6 +18,7 @@ import java.time.temporal.ChronoUnit
 data class ExerciseState(
     val name: String,
     val targetCount: Int,
+    val completedCount: Int,
     val isCompleted: Boolean
 )
 
@@ -53,8 +54,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             val dayNumber = computeDayNumber(startDate)
 
             completionDao.getCompletionsForDay(dayNumber).collect { completions ->
-                val completionMap = completions.associate { it.exercise to it.completed }
-                val exercises = buildExercises(dayNumber, completionMap)
+                val exercises = buildExercises(dayNumber, completions)
                 val allCompleted = exercises.all { it.isCompleted }
                 val streak = computeStreak(dayNumber)
 
@@ -77,13 +77,34 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     fun toggleExercise(exerciseName: String) {
         val state = _uiState.value
         val exercise = state.exercises.find { it.name == exerciseName } ?: return
+        val newCompleted = !exercise.isCompleted
+        val newCount = if (newCompleted) exercise.targetCount else 0
 
         viewModelScope.launch {
             completionDao.upsertCompletion(
                 DailyCompletion(
                     dayNumber = state.dayNumber,
                     exercise = exerciseName,
-                    completed = !exercise.isCompleted
+                    completed = newCompleted,
+                    completedCount = newCount
+                )
+            )
+        }
+    }
+
+    fun updateExerciseCount(exerciseName: String, count: Int) {
+        val state = _uiState.value
+        val exercise = state.exercises.find { it.name == exerciseName } ?: return
+        val clampedCount = count.coerceIn(0, exercise.targetCount)
+        val completed = clampedCount >= exercise.targetCount
+
+        viewModelScope.launch {
+            completionDao.upsertCompletion(
+                DailyCompletion(
+                    dayNumber = state.dayNumber,
+                    exercise = exerciseName,
+                    completed = completed,
+                    completedCount = clampedCount
                 )
             )
         }
@@ -120,25 +141,22 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     private fun buildExercises(
         dayNumber: Int,
-        completionMap: Map<String, Boolean>
+        completions: List<DailyCompletion>
     ): List<ExerciseState> {
+        val completionMap = completions.associateBy { it.exercise }
         return listOf(
+            Triple("Push-ups", dayNumber, completionMap["Push-ups"]),
+            Triple("Sit-ups", dayNumber * 2, completionMap["Sit-ups"]),
+            Triple("Squats", dayNumber * 3, completionMap["Squats"])
+        ).map { (name, target, completion) ->
+            val count = completion?.completedCount ?: 0
             ExerciseState(
-                name = "Push-ups",
-                targetCount = dayNumber,
-                isCompleted = completionMap["Push-ups"] ?: false
-            ),
-            ExerciseState(
-                name = "Sit-ups",
-                targetCount = dayNumber * 2,
-                isCompleted = completionMap["Sit-ups"] ?: false
-            ),
-            ExerciseState(
-                name = "Squats",
-                targetCount = dayNumber * 3,
-                isCompleted = completionMap["Squats"] ?: false
+                name = name,
+                targetCount = target,
+                completedCount = count,
+                isCompleted = completion?.completed ?: false
             )
-        )
+        }
     }
 
     private suspend fun computeStreak(currentDay: Int): Int {

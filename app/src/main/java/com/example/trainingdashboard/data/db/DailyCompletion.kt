@@ -6,5 +6,6 @@ import androidx.room.Entity
 data class DailyCompletion(
     val dayNumber: Int,
     val exercise: String,
-    val completed: Boolean
+    val completed: Boolean,
+    val completedCount: Int = 0
 )
