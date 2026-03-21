@@ -57,13 +57,20 @@ jobs:
             exit 1
           fi
 
-          RESPONSE=$(curl --fail --silent --show-error \
+          HTTP_CODE=$(curl --silent --output /tmp/appetize-response.json --write-out "%{http_code}" \
             "https://api.appetize.io/v2/apps" \
             -H "Authorization: Bearer $APPETIZE_API_TOKEN" \
-            -H "Content-Type: multipart/form-data" \
             -F "file=@app-debug.apk" \
             -F "platform=android" \
             -F "note=PR #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}")
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Appetize API returned HTTP $HTTP_CODE"
+            cat /tmp/appetize-response.json || true
+            exit 1
+          fi
+
+          RESPONSE=$(cat /tmp/appetize-response.json)
 
           echo "$RESPONSE" | python3 -c "
           import sys, json
