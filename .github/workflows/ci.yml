@@ -57,12 +57,13 @@ jobs:
             exit 1
           fi
 
+          APK_BASE64=$(base64 -w 0 app-debug.apk)
+
           HTTP_CODE=$(curl --silent --output /tmp/appetize-response.json --write-out "%{http_code}" \
             "https://api.appetize.io/v2/apps" \
             -H "Authorization: Bearer $APPETIZE_API_TOKEN" \
-            -F "file=@app-debug.apk" \
-            -F "platform=android" \
-            -F "note=PR #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}")
+            -H "Content-Type: application/json" \
+            -d "{\"platform\":\"android\",\"fileData\":\"data:application/vnd.android.package-archive;base64,${APK_BASE64}\",\"note\":\"PR #${{ github.event.pull_request.number }} — ${{ github.event.pull_request.title }}\"}")
 
           if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
             echo "::error::Appetize API returned HTTP $HTTP_CODE"
