@@ -87,7 +87,10 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
                 state.exercises.forEach { exercise ->
                     ExerciseCard(
                         exercise = exercise,
-                        onToggle = { viewModel.toggleExercise(exercise.name) }
+                        onToggle = { viewModel.toggleExercise(exercise.name) },
+                        onUpdateCount = { count ->
+                            viewModel.updateExerciseCount(exercise.name, count)
+                        }
                     )
                 }
 
