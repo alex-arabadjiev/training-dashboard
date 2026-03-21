@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -19,6 +20,11 @@ class PreferencesRepository(private val context: Context) {
         val START_DATE = stringPreferencesKey("start_date")
         val REMINDER_HOUR = intPreferencesKey("reminder_hour")
         val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
+        val AFTERNOON_NUDGE_HOUR = intPreferencesKey("afternoon_nudge_hour")
+        val AFTERNOON_NUDGE_MINUTE = intPreferencesKey("afternoon_nudge_minute")
+        val EVENING_INTERRUPT_HOUR = intPreferencesKey("evening_interrupt_hour")
+        val EVENING_INTERRUPT_MINUTE = intPreferencesKey("evening_interrupt_minute")
+        val ADAPTIVE_TIMING_ENABLED = booleanPreferencesKey("adaptive_timing_enabled")
     }
 
     val startDate: Flow<LocalDate?> = context.dataStore.data.map { prefs ->
@@ -43,6 +49,46 @@ class PreferencesRepository(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[Keys.REMINDER_HOUR] = hour
             prefs[Keys.REMINDER_MINUTE] = minute
+        }
+    }
+
+    val afternoonNudgeHour: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[Keys.AFTERNOON_NUDGE_HOUR] ?: 14
+    }
+
+    val afternoonNudgeMinute: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[Keys.AFTERNOON_NUDGE_MINUTE] ?: 0
+    }
+
+    suspend fun setAfternoonNudgeTime(hour: Int, minute: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.AFTERNOON_NUDGE_HOUR] = hour
+            prefs[Keys.AFTERNOON_NUDGE_MINUTE] = minute
+        }
+    }
+
+    val eveningInterruptHour: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[Keys.EVENING_INTERRUPT_HOUR] ?: 20
+    }
+
+    val eveningInterruptMinute: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[Keys.EVENING_INTERRUPT_MINUTE] ?: 0
+    }
+
+    suspend fun setEveningInterruptTime(hour: Int, minute: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.EVENING_INTERRUPT_HOUR] = hour
+            prefs[Keys.EVENING_INTERRUPT_MINUTE] = minute
+        }
+    }
+
+    val adaptiveTimingEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.ADAPTIVE_TIMING_ENABLED] ?: false
+    }
+
+    suspend fun setAdaptiveTimingEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.ADAPTIVE_TIMING_ENABLED] = enabled
         }
     }
 }

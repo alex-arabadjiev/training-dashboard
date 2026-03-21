@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.trainingdashboard.TrainingApp
+import com.example.trainingdashboard.data.ExerciseTargets
 import com.example.trainingdashboard.data.PreferencesRepository
 import com.example.trainingdashboard.data.db.DailyCompletion
 import kotlinx.coroutines.Job
@@ -29,6 +30,11 @@ data class DashboardUiState(
     val streak: Int = 0,
     val reminderHour: Int = 8,
     val reminderMinute: Int = 0,
+    val afternoonNudgeHour: Int = 14,
+    val afternoonNudgeMinute: Int = 0,
+    val eveningInterruptHour: Int = 20,
+    val eveningInterruptMinute: Int = 0,
+    val adaptiveTimingEnabled: Boolean = false,
     val isLoading: Boolean = true
 )
 
@@ -60,6 +66,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
                 val hour = prefsRepo.reminderHour.first()
                 val minute = prefsRepo.reminderMinute.first()
+                val afternoonHour = prefsRepo.afternoonNudgeHour.first()
+                val afternoonMinute = prefsRepo.afternoonNudgeMinute.first()
+                val eveningHour = prefsRepo.eveningInterruptHour.first()
+                val eveningMinute = prefsRepo.eveningInterruptMinute.first()
+                val adaptiveEnabled = prefsRepo.adaptiveTimingEnabled.first()
 
                 _uiState.value = DashboardUiState(
                     dayNumber = dayNumber,
@@ -68,6 +79,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     streak = streak,
                     reminderHour = hour,
                     reminderMinute = minute,
+                    afternoonNudgeHour = afternoonHour,
+                    afternoonNudgeMinute = afternoonMinute,
+                    eveningInterruptHour = eveningHour,
+                    eveningInterruptMinute = eveningMinute,
+                    adaptiveTimingEnabled = adaptiveEnabled,
                     isLoading = false
                 )
             }
@@ -126,6 +142,31 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun updateAfternoonNudgeTime(hour: Int, minute: Int) {
+        viewModelScope.launch {
+            prefsRepo.setAfternoonNudgeTime(hour, minute)
+            _uiState.value = _uiState.value.copy(
+                afternoonNudgeHour = hour, afternoonNudgeMinute = minute
+            )
+        }
+    }
+
+    fun updateEveningInterruptTime(hour: Int, minute: Int) {
+        viewModelScope.launch {
+            prefsRepo.setEveningInterruptTime(hour, minute)
+            _uiState.value = _uiState.value.copy(
+                eveningInterruptHour = hour, eveningInterruptMinute = minute
+            )
+        }
+    }
+
+    fun setAdaptiveTimingEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            prefsRepo.setAdaptiveTimingEnabled(enabled)
+            _uiState.value = _uiState.value.copy(adaptiveTimingEnabled = enabled)
+        }
+    }
+
     private suspend fun ensureStartDate(): LocalDate {
         val existing = prefsRepo.startDate.first()
         if (existing != null) return existing
@@ -144,16 +185,12 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         completions: List<DailyCompletion>
     ): List<ExerciseState> {
         val completionMap = completions.associateBy { it.exercise }
-        return listOf(
-            Triple("Push-ups", dayNumber, completionMap["Push-ups"]),
-            Triple("Sit-ups", dayNumber * 2, completionMap["Sit-ups"]),
-            Triple("Squats", dayNumber * 3, completionMap["Squats"])
-        ).map { (name, target, completion) ->
-            val count = completion?.completedCount ?: 0
+        return ExerciseTargets.forDay(dayNumber).map { (name, target) ->
+            val completion = completionMap[name]
             ExerciseState(
                 name = name,
                 targetCount = target,
-                completedCount = count,
+                completedCount = completion?.completedCount ?: 0,
                 isCompleted = completion?.completed ?: false
             )
         }
