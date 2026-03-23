@@ -1,5 +1,6 @@
 package com.example.trainingdashboard.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -25,12 +26,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,13 +40,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.trainingdashboard.ui.components.CompletionBanner
 import com.example.trainingdashboard.ui.components.DayHeader
 import com.example.trainingdashboard.ui.components.ExerciseCard
 import com.example.trainingdashboard.ui.components.PermissionBanner
+import com.example.trainingdashboard.ui.theme.KineticGreen
+import com.example.trainingdashboard.ui.theme.KineticBackground
 import com.example.trainingdashboard.viewmodel.DashboardViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,41 +60,67 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showSettings by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Training Dashboard") },
-                actions = {
-                    IconButton(onClick = { showSettings = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Reminder settings"
-                        )
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(KineticBackground)
+    ) {
         if (state.isLoading) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = KineticGreen)
             }
         } else {
+            val totalTarget = state.exercises.sumOf { it.targetCount }
+            val totalCompleted = state.exercises.sumOf { it.completedCount }
+            val progressPercent = if (totalTarget > 0) {
+                (totalCompleted * 100 / totalTarget).coerceIn(0, 100)
+            } else 0
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 16.dp, bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Header: "KINETIC" + settings gear
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "KINETIC",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = KineticGreen
+                    )
+                    IconButton(onClick = { showSettings = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
                 PermissionBanner()
 
-                DayHeader(dayNumber = state.dayNumber)
+                DayHeader(
+                    dayNumber = state.dayNumber,
+                    streak = state.streak,
+                    progressPercent = progressPercent
+                )
+
+                // TODAY'S GOALS label
+                Text(
+                    text = "TODAY'S GOALS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 state.exercises.forEach { exercise ->
                     ExerciseCard(
@@ -102,11 +132,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
                     )
                 }
 
-                CompletionBanner(
-                    visible = state.allCompleted,
-                    dayNumber = state.dayNumber,
-                    streak = state.streak
-                )
+                CompletionBanner()
             }
         }
     }
