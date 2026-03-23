@@ -47,22 +47,13 @@ app/src/main/java/com/example/trainingdashboard/
     └── DashboardViewModel.kt    # UI state, day computation, streak logic
 ```
 
-## Build & Run
+## Commands
 
-```bash
-# Build debug APK
-gradle assembleDebug
+- `gradle assembleDebug` — build debug APK (output: `app/build/outputs/apk/debug/app-debug.apk`)
+- `gradle assembleRelease` — build signed release APK (requires `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` env vars)
+- `gradle test` — run unit tests
 
-# Run tests
-gradle test
-
-# Build release APK (requires signing env vars)
-gradle assembleRelease
-```
-
-The debug APK is output to `app/build/outputs/apk/debug/app-debug.apk`.
-
-Note: This project uses the system `gradle` command, not `./gradlew` (wrapper jar is not checked in).
+Use the system `gradle` command, not `./gradlew` (wrapper jar is not checked in).
 
 ## Architecture Notes
 
@@ -90,3 +81,34 @@ No tests exist yet. Priority areas for future tests:
 - ViewModel: day computation, goal formulas, streak calculation
 - Room DAO: completion queries, upsert behavior
 - UI: exercise card interactions, settings dialog
+
+## Critical Rules
+
+### Code Style
+- Use Kotlin idioms: prefer `val` over `var`, data classes for state, named arguments for clarity
+- Composable function names are PascalCase nouns; preview functions are suffixed `Preview`
+- No XML layouts — all UI is Jetpack Compose; never add View-based components
+
+### Architecture
+- All state lives in `DashboardViewModel` as `StateFlow`; composables are stateless and receive state as parameters
+- Side effects (DB writes, notifications) are triggered from the ViewModel, never from composables
+- Use `combine`/`map` on Flows in the ViewModel; collect with `collectAsStateWithLifecycle` in UI
+
+### Database
+- All DAO operations must be `suspend` or return `Flow` — never call them on the main thread
+- Use `@Upsert` for idempotent writes; never duplicate insert + delete logic
+- Keep entity classes in `data.db.**` so ProGuard rules continue to protect them
+
+### Notifications / Background Work
+- Schedule via `ReminderScheduler` using `ExistingPeriodicWorkPolicy.UPDATE` to avoid duplicate workers
+- Never post notifications directly from a composable or ViewModel — use `ReminderWorker`
+- Notification channels must be created before posting; channel creation is idempotent
+
+### Testing
+- Tests go in `app/src/test/` (unit) or `app/src/androidTest/` (instrumented)
+- ViewModel tests must inject a fake `AppDatabase` or DAO — never rely on production Room instances
+- Test day computation, streak logic, and goal formulas with boundary values (day 0, day 1, large N)
+
+## Documentation Lookup
+Always use Context7 MCP when you need library/API documentation, code generation,
+setup or configuration steps. Add "use context7" to prompts or it will be auto-invoked.

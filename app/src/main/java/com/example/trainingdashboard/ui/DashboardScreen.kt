@@ -34,18 +34,16 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.trainingdashboard.notification.ReminderScheduler
 import com.example.trainingdashboard.ui.components.CompletionBanner
 import com.example.trainingdashboard.ui.components.DayHeader
 import com.example.trainingdashboard.ui.components.ExerciseCard
@@ -54,10 +52,9 @@ import com.example.trainingdashboard.viewmodel.DashboardViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
-    val state by viewModel.uiState.collectAsState()
+fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = DashboardViewModel.Factory)) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showSettings by remember { mutableStateOf(false) }
-    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -127,15 +124,6 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
                 viewModel.updateAfternoonNudgeTime(afternoonH, afternoonM)
                 viewModel.updateEveningInterruptTime(eveningH, eveningM)
                 viewModel.setAdaptiveTimingEnabled(adaptiveEnabled)
-
-                ReminderScheduler.schedule(context, morningH, morningM)
-                ReminderScheduler.scheduleAfternoonNudge(context, afternoonH, afternoonM)
-                ReminderScheduler.scheduleEveningInterrupt(context, eveningH, eveningM)
-                if (adaptiveEnabled) {
-                    ReminderScheduler.scheduleAdaptiveTiming(context)
-                } else {
-                    ReminderScheduler.cancelAdaptiveTiming(context)
-                }
 
                 showSettings = false
             }
