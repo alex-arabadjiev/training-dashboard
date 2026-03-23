@@ -11,3 +11,16 @@ local.properties
 /app/build
 *.jks
 *.keystore
+
+# Claude Code / Project setup
+.claude/settings.local.json
+.ai-setup.json
+.ai-setup-backup/
+.agents/context/.state
+.agents/memory/
+.agents/.skill-cache.json
+scripts/storyblok-dump.json
+CLAUDE.local.md
+.codex/skills
+.gemini/agents
+.opencode/skills

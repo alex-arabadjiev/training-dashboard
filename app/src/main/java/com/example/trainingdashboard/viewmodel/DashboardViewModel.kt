@@ -2,15 +2,22 @@ package com.example.trainingdashboard.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import com.example.trainingdashboard.TrainingApp
 import com.example.trainingdashboard.data.ExerciseTargets
 import com.example.trainingdashboard.data.PreferencesRepository
+import com.example.trainingdashboard.data.db.CompletionDao
 import com.example.trainingdashboard.data.db.DailyCompletion
+import com.example.trainingdashboard.notification.ReminderScheduler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -38,11 +45,25 @@ data class DashboardUiState(
     val isLoading: Boolean = true
 )
 
-class DashboardViewModel(application: Application) : AndroidViewModel(application) {
+class DashboardViewModel(
+    application: Application,
+    private val completionDao: CompletionDao,
+    private val prefsRepo: PreferencesRepository
+) : AndroidViewModel(application) {
 
-    private val db = (application as TrainingApp).database
-    private val completionDao = db.completionDao()
-    private val prefsRepo = PreferencesRepository(application)
+    companion object {
+        val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+                val app = extras[APPLICATION_KEY] as TrainingApp
+                return DashboardViewModel(
+                    app,
+                    app.database.completionDao(),
+                    PreferencesRepository(app)
+                ) as T
+            }
+        }
+    }
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -59,33 +80,35 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             val startDate = ensureStartDate()
             val dayNumber = computeDayNumber(startDate)
 
-            completionDao.getCompletionsForDay(dayNumber).collect { completions ->
+            combine(
+                completionDao.getCompletionsForDay(dayNumber),
+                prefsRepo.reminderHour,
+                prefsRepo.reminderMinute,
+                prefsRepo.afternoonNudgeHour,
+                prefsRepo.afternoonNudgeMinute,
+                prefsRepo.eveningInterruptHour,
+                prefsRepo.eveningInterruptMinute,
+                prefsRepo.adaptiveTimingEnabled
+            ) { values ->
+                @Suppress("UNCHECKED_CAST")
+                val completions = values[0] as List<DailyCompletion>
                 val exercises = buildExercises(dayNumber, completions)
-                val allCompleted = exercises.all { it.isCompleted }
-                val streak = computeStreak(dayNumber)
-
-                val hour = prefsRepo.reminderHour.first()
-                val minute = prefsRepo.reminderMinute.first()
-                val afternoonHour = prefsRepo.afternoonNudgeHour.first()
-                val afternoonMinute = prefsRepo.afternoonNudgeMinute.first()
-                val eveningHour = prefsRepo.eveningInterruptHour.first()
-                val eveningMinute = prefsRepo.eveningInterruptMinute.first()
-                val adaptiveEnabled = prefsRepo.adaptiveTimingEnabled.first()
-
-                _uiState.value = DashboardUiState(
+                DashboardUiState(
                     dayNumber = dayNumber,
                     exercises = exercises,
-                    allCompleted = allCompleted,
-                    streak = streak,
-                    reminderHour = hour,
-                    reminderMinute = minute,
-                    afternoonNudgeHour = afternoonHour,
-                    afternoonNudgeMinute = afternoonMinute,
-                    eveningInterruptHour = eveningHour,
-                    eveningInterruptMinute = eveningMinute,
-                    adaptiveTimingEnabled = adaptiveEnabled,
+                    allCompleted = exercises.all { it.isCompleted },
+                    streak = computeStreak(dayNumber),
+                    reminderHour = values[1] as Int,
+                    reminderMinute = values[2] as Int,
+                    afternoonNudgeHour = values[3] as Int,
+                    afternoonNudgeMinute = values[4] as Int,
+                    eveningInterruptHour = values[5] as Int,
+                    eveningInterruptMinute = values[6] as Int,
+                    adaptiveTimingEnabled = values[7] as Boolean,
                     isLoading = false
                 )
+            }.collect { state ->
+                _uiState.value = state
             }
         }
     }
@@ -139,6 +162,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             prefsRepo.setReminderTime(hour, minute)
             _uiState.value = _uiState.value.copy(reminderHour = hour, reminderMinute = minute)
+            ReminderScheduler.schedule(getApplication(), hour, minute)
         }
     }
 
@@ -148,6 +172,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             _uiState.value = _uiState.value.copy(
                 afternoonNudgeHour = hour, afternoonNudgeMinute = minute
             )
+            ReminderScheduler.scheduleAfternoonNudge(getApplication(), hour, minute)
         }
     }
 
@@ -157,6 +182,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             _uiState.value = _uiState.value.copy(
                 eveningInterruptHour = hour, eveningInterruptMinute = minute
             )
+            ReminderScheduler.scheduleEveningInterrupt(getApplication(), hour, minute)
         }
     }
 
@@ -164,6 +190,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             prefsRepo.setAdaptiveTimingEnabled(enabled)
             _uiState.value = _uiState.value.copy(adaptiveTimingEnabled = enabled)
+            if (enabled) {
+                ReminderScheduler.scheduleAdaptiveTiming(getApplication())
+            } else {
+                ReminderScheduler.cancelAdaptiveTiming(getApplication())
+            }
         }
     }
 
