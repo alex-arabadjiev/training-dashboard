@@ -63,13 +63,22 @@ fun DayHeader(
                 ),
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Text(
-                text = "$progressPercent%",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = KineticGreen,
+            Column(
+                horizontalAlignment = Alignment.End,
                 modifier = Modifier.padding(bottom = 12.dp)
-            )
+            ) {
+                Text(
+                    text = "$progressPercent%",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = KineticGreen
+                )
+                Text(
+                    text = "TOTAL PROGRESS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KineticGreenDim
+                )
+            }
         }
     }
 }

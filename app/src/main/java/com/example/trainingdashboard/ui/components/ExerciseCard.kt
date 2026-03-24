@@ -1,6 +1,7 @@
 package com.example.trainingdashboard.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.trainingdashboard.ui.theme.KineticGreen
 import com.example.trainingdashboard.ui.theme.KineticBackground
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainer
@@ -58,28 +60,29 @@ fun ExerciseCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = KineticSurfaceContainer),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(6.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onLogReps() }
-                .padding(16.dp),
+                .padding(24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Icon box
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(KineticBackground),
+                    .size(56.dp)
+                    .background(Color.Black, RoundedCornerShape(8.dp))
+                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = exerciseIcon(exercise.name),
                     contentDescription = null,
                     tint = KineticGreen,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
 
@@ -90,8 +93,10 @@ fun ExerciseCard(
                 Text(
                     text = exercise.name.uppercase(),
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontStyle = FontStyle.Italic
+                        fontWeight = FontWeight.Black,
+                        fontStyle = FontStyle.Italic,
+                        fontSize = 24.sp,
+                        letterSpacing = (-0.5).sp
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -105,7 +110,7 @@ fun ExerciseCard(
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .width(128.dp)
                         .height(4.dp)
                         .clip(RoundedCornerShape(2.dp)),
                     color = KineticGreen,

@@ -1,6 +1,7 @@
 package com.example.trainingdashboard.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -13,12 +14,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Settings
@@ -259,7 +262,7 @@ private fun SettingsBottomSheet(
                 onClick = { editingTimePicker = "morning" }
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // Afternoon Nudge row
             TimeSettingRow(
@@ -270,7 +273,7 @@ private fun SettingsBottomSheet(
                 onClick = { editingTimePicker = "afternoon" }
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // Evening Interrupt row
             TimeSettingRow(
@@ -281,21 +284,23 @@ private fun SettingsBottomSheet(
                 onClick = { editingTimePicker = "evening" }
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
             // Adaptive Timing toggle
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(KineticSurfaceContainer, RoundedCornerShape(12.dp))
-                    .padding(16.dp),
+                    .padding(vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Adaptive Timing",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
+                        text = "ADAPTIVE TIMING",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp
+                        ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
@@ -314,13 +319,13 @@ private fun SettingsBottomSheet(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // SAVE CHANGES button — neon gradient
             Button(
                 onClick = {
                     onSave(
-                        "", // no day text from save button
+                        "",
                         morningHour, morningMinute,
                         afternoonHour, afternoonMinute,
                         eveningHour, eveningMinute,
@@ -329,7 +334,7 @@ private fun SettingsBottomSheet(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(64.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -337,8 +342,8 @@ private fun SettingsBottomSheet(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(KineticGreen, KineticGreenDim)
+                            brush = Brush.linearGradient(
+                                colors = listOf(KineticGreenDim, KineticGreen)
                             ),
                             shape = RoundedCornerShape(12.dp)
                         ),
@@ -347,8 +352,10 @@ private fun SettingsBottomSheet(
                     Text(
                         text = "SAVE CHANGES",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontStyle = FontStyle.Italic
+                            fontWeight = FontWeight.Black,
+                            fontStyle = FontStyle.Italic,
+                            fontSize = 20.sp,
+                            letterSpacing = 1.sp
                         ),
                         color = KineticBackground
                     )
@@ -362,7 +369,7 @@ private fun SettingsBottomSheet(
                 onClick = onDismiss,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(64.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = KineticSurfaceContainerHigh
                 ),
@@ -371,7 +378,8 @@ private fun SettingsBottomSheet(
                 Text(
                     text = "CANCEL",
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -385,9 +393,11 @@ private fun SettingsBottomSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Set Current Day",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = KineticOnSurfaceVariant,
+                    text = "SET CURRENT DAY",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        letterSpacing = 2.sp
+                    ),
+                    color = KineticOnSurfaceVariant.copy(alpha = 0.4f),
                     modifier = Modifier.clickable { showDayDialog = true }
                 )
             }
@@ -468,33 +478,61 @@ private fun TimeSettingRow(
     minute: Int,
     onClick: () -> Unit
 ) {
-    val timeText = String.format("%02d:%02d", hour, minute)
+    val amPm = if (hour < 12) "AM" else "PM"
+    val displayHour = when {
+        hour == 0 -> 12
+        hour > 12 -> hour - 12
+        else -> hour
+    }
+    val timeText = String.format("%02d:%02d %s", displayHour, minute, amPm)
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(KineticSurfaceContainer, RoundedCornerShape(12.dp))
-            .clickable { onClick() }
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = KineticGreen,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = timeText,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-            color = KineticGreen
-        )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Label with icon
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = KineticOnSurfaceVariant,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    letterSpacing = 2.sp
+                ),
+                color = KineticOnSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        // Time value field
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .background(KineticSurfaceContainer, RoundedCornerShape(12.dp))
+                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                .clickable { onClick() }
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = timeText,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Normal
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Icon(
+                imageVector = Icons.Default.AccessTime,
+                contentDescription = null,
+                tint = KineticOnSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
