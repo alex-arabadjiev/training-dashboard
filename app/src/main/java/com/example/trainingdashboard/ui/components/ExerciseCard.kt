@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.SelfImprovement
-import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.SportsGymnastics
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -41,8 +41,8 @@ import com.example.trainingdashboard.viewmodel.ExerciseState
 
 private fun exerciseIcon(name: String): ImageVector = when {
     name.contains("push", ignoreCase = true) -> Icons.Default.FitnessCenter
-    name.contains("sit", ignoreCase = true) -> Icons.Default.SelfImprovement
-    name.contains("squat", ignoreCase = true) -> Icons.Default.DirectionsRun
+    name.contains("sit", ignoreCase = true) -> Icons.Default.SportsGymnastics
+    name.contains("squat", ignoreCase = true) -> Icons.Default.AccessibilityNew
     else -> Icons.Default.FitnessCenter
 }
 
