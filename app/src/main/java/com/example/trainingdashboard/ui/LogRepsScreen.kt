@@ -17,23 +17,26 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Vibration
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,14 +45,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.trainingdashboard.ui.theme.KineticBackground
@@ -66,9 +76,19 @@ fun LogRepsScreen(
     onDone: () -> Unit
 ) {
     var currentCount by remember { mutableIntStateOf(exercise.completedCount) }
-    var showEditDialog by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(false) }
+    var editText by remember { mutableStateOf(TextFieldValue("")) }
+    val focusRequester = remember { FocusRequester() }
     var accelerometerMode by remember { mutableStateOf(false) }
-    val isSquats = exercise.name.equals("Squats", ignoreCase = true)
+    val isGoalComplete = currentCount >= exercise.targetCount
+
+    LaunchedEffect(isEditing) {
+        if (isEditing) {
+            val text = currentCount.toString()
+            editText = TextFieldValue(text, selection = TextRange(0, text.length))
+            focusRequester.requestFocus()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -183,16 +203,55 @@ fun LogRepsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "$currentCount",
-                            style = MaterialTheme.typography.displayLarge.copy(
-                                fontWeight = FontWeight.Black,
-                                fontSize = 96.sp,
-                                lineHeight = 96.sp,
-                                letterSpacing = (-2).sp
-                            ),
-                            color = Color.White
-                        )
+                        if (isEditing) {
+                            CompositionLocalProvider(
+                                LocalTextSelectionColors provides TextSelectionColors(
+                                    handleColor = Color.Transparent,
+                                    backgroundColor = Color.Transparent
+                                )
+                            ) {
+                            BasicTextField(
+                                value = editText,
+                                onValueChange = { value ->
+                                    if (value.text.isEmpty() || value.text.all { it.isDigit() }) editText = value
+                                },
+                                textStyle = MaterialTheme.typography.displayLarge.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 96.sp,
+                                    lineHeight = 96.sp,
+                                    letterSpacing = (-2).sp,
+                                    color = Color.White,
+                                    textAlign = TextAlign.Center
+                                ),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done
+                                ),
+                                keyboardActions = KeyboardActions(onDone = {
+                                    val count = editText.text.toIntOrNull() ?: currentCount
+                                    currentCount = count.coerceIn(0, exercise.targetCount)
+                                    isEditing = false
+                                }),
+                                singleLine = true,
+                                modifier = Modifier
+                                    .width(200.dp)
+                                    .focusRequester(focusRequester),
+                                decorationBox = { innerTextField -> innerTextField() }
+                            )
+                            } // CompositionLocalProvider
+                        } else {
+                            Text(
+                                text = "$currentCount",
+                                style = MaterialTheme.typography.displayLarge.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 96.sp,
+                                    lineHeight = 96.sp,
+                                    letterSpacing = (-2).sp
+                                ),
+                                color = if (isGoalComplete) KineticGreen else Color.White,
+                                modifier = Modifier.clickable { isEditing = true }
+                            )
+                        }
                         // Green accent bar below number
                         Box(
                             modifier = Modifier
@@ -210,14 +269,21 @@ fun LogRepsScreen(
                         // GOAL pill
                         Box(
                             modifier = Modifier
-                                .background(KineticSurfaceContainerHigh, RoundedCornerShape(50))
-                                .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(50))
+                                .background(
+                                    if (isGoalComplete) KineticGreen.copy(alpha = 0.15f) else KineticSurfaceContainerHigh,
+                                    RoundedCornerShape(50)
+                                )
+                                .border(
+                                    1.dp,
+                                    if (isGoalComplete) KineticGreen.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.05f),
+                                    RoundedCornerShape(50)
+                                )
                                 .padding(horizontal = 20.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = "GOAL: ${exercise.targetCount}",
+                                text = if (isGoalComplete) "GOAL COMPLETE" else "GOAL: ${exercise.targetCount}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = KineticOnSurfaceVariant
+                                color = if (isGoalComplete) KineticGreen else KineticOnSurfaceVariant
                             )
                         }
                     }
@@ -236,13 +302,18 @@ fun LogRepsScreen(
                             .weight(1f)
                             .height(96.dp)
                             .background(KineticSurfaceContainer, RoundedCornerShape(12.dp))
-                            .border(1.dp, KineticGreen.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                            .clickable {
-                                currentCount = (currentCount + 1).coerceAtMost(exercise.targetCount)
-                            },
+                            .border(1.dp, KineticGreen.copy(alpha = if (isGoalComplete) 0.03f else 0.1f), RoundedCornerShape(12.dp))
+                            .then(
+                                if (!isGoalComplete) Modifier.clickable {
+                                    currentCount = (currentCount + 1).coerceAtMost(exercise.targetCount)
+                                } else Modifier
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.then(if (isGoalComplete) Modifier.alpha(0.3f) else Modifier)
+                        ) {
                             Text(
                                 text = "+1",
                                 style = MaterialTheme.typography.headlineMedium.copy(
@@ -265,13 +336,18 @@ fun LogRepsScreen(
                             .weight(1f)
                             .height(96.dp)
                             .background(KineticSurfaceContainer, RoundedCornerShape(12.dp))
-                            .border(1.dp, KineticGreen.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                            .clickable {
-                                currentCount = (currentCount + 10).coerceAtMost(exercise.targetCount)
-                            },
+                            .border(1.dp, KineticGreen.copy(alpha = if (isGoalComplete) 0.03f else 0.1f), RoundedCornerShape(12.dp))
+                            .then(
+                                if (!isGoalComplete) Modifier.clickable {
+                                    currentCount = (currentCount + 10).coerceAtMost(exercise.targetCount)
+                                } else Modifier
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.then(if (isGoalComplete) Modifier.alpha(0.3f) else Modifier)
+                        ) {
                             Text(
                                 text = "+10",
                                 style = MaterialTheme.typography.headlineMedium.copy(
@@ -295,7 +371,7 @@ fun LogRepsScreen(
                             .height(96.dp)
                             .background(KineticSurfaceContainerHigh, RoundedCornerShape(12.dp))
                             .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
-                            .clickable { showEditDialog = true },
+                            .clickable { isEditing = true },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -315,9 +391,8 @@ fun LogRepsScreen(
                     }
                 }
 
-                // Accelerometer Mode toggle (squats only)
-                if (isSquats) {
-                    Spacer(modifier = Modifier.height(24.dp))
+                // Accelerometer Mode toggle
+                Spacer(modifier = Modifier.height(24.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -350,9 +425,14 @@ fun LogRepsScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Auto-detecting squat depth",
+                                text = "Auto-detect each ${exercise.name.lowercase().dropLast(1)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = KineticOnSurfaceVariant
+                            )
+                            Text(
+                                text = "Experimental: requires extra permissions",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                color = KineticOnSurfaceVariant.copy(alpha = 0.5f)
                             )
                         }
                         Switch(
@@ -364,7 +444,6 @@ fun LogRepsScreen(
                             )
                         )
                     }
-                }
 
                 Spacer(modifier = Modifier.height(32.dp))
             }
@@ -406,36 +485,4 @@ fun LogRepsScreen(
         }
     }
 
-    // Edit dialog
-    if (showEditDialog) {
-        var editText by remember { mutableStateOf(currentCount.toString()) }
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            title = { Text("Edit Rep Count") },
-            text = {
-                OutlinedTextField(
-                    value = editText,
-                    onValueChange = { value ->
-                        if (value.isEmpty() || value.all { it.isDigit() }) {
-                            editText = value
-                        }
-                    },
-                    label = { Text("Reps (max ${exercise.targetCount})") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    val count = editText.toIntOrNull() ?: currentCount
-                    currentCount = count.coerceIn(0, exercise.targetCount)
-                    showEditDialog = false
-                }) { Text("OK") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditDialog = false }) { Text("Cancel") }
-            }
-        )
-    }
 }
