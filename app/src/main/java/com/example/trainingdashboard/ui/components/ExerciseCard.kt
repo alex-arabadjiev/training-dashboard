@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.example.trainingdashboard.ui.theme.KineticGreen
 import com.example.trainingdashboard.ui.theme.KineticBackground
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainer
+import com.example.trainingdashboard.ui.theme.KineticSurfaceContainerHigh
 import com.example.trainingdashboard.viewmodel.ExerciseState
 
 private fun exerciseIcon(name: String): ImageVector = when {
@@ -60,7 +61,7 @@ fun ExerciseCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = KineticSurfaceContainer),
-        shape = RoundedCornerShape(6.dp),
+        shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
     ) {
         Row(
@@ -74,8 +75,8 @@ fun ExerciseCard(
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .background(Color.Black, RoundedCornerShape(8.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
+                    .background(KineticSurfaceContainerHigh, RoundedCornerShape(12.dp))
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

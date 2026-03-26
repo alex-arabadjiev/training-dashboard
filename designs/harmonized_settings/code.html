@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kinetic Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;700;900&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed-dim": "#abd600",
+                        "surface-container-low": "#1c1b1b",
+                        "on-tertiary-fixed": "#0b1d29",
+                        "tertiary-fixed": "#d2e5f5",
+                        "inverse-surface": "#e5e2e1",
+                        "tertiary-fixed-dim": "#b6c9d8",
+                        "on-tertiary": "#21323e",
+                        "on-secondary-container": "#00616d",
+                        "surface-container-high": "#2a2a2a",
+                        "on-surface-variant": "#c4c9ac",
+                        "surface-tint": "#abd600",
+                        "primary": "#ffffff",
+                        "on-primary": "#283500",
+                        "on-background": "#e5e2e1",
+                        "on-tertiary-container": "#556774",
+                        "surface-container": "#201f1f",
+                        "on-secondary-fixed-variant": "#004f58",
+                        "surface-dim": "#131313",
+                        "outline-variant": "#444933",
+                        "surface-container-highest": "#353534",
+                        "background": "#131313",
+                        "secondary-fixed": "#9cf0ff",
+                        "secondary-fixed-dim": "#00daf3",
+                        "primary-container": "#c3f400",
+                        "on-surface": "#e5e2e1",
+                        "error": "#ffb4ab",
+                        "inverse-on-surface": "#313030",
+                        "error-container": "#93000a",
+                        "on-error": "#690005",
+                        "tertiary": "#ffffff",
+                        "outline": "#8e9379",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-primary-container": "#556d00",
+                        "surface-bright": "#393939",
+                        "on-tertiary-fixed-variant": "#374956",
+                        "secondary-container": "#00e3fd",
+                        "on-secondary": "#00363d",
+                        "on-primary-fixed-variant": "#3c4d00",
+                        "surface": "#131313",
+                        "on-secondary-fixed": "#001f24",
+                        "tertiary-container": "#d2e5f5",
+                        "surface-variant": "#353534",
+                        "on-primary-fixed": "#161e00",
+                        "secondary": "#bdf4ff",
+                        "primary-fixed": "#c3f400",
+                        "inverse-primary": "#506600",
+                        "on-error-container": "#ffdad6"
+                    },
+                    fontFamily: {
+                        "headline": ["Lexend"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-kinetic-gradient {
+            background: linear-gradient(45deg, #abd600 0%, #c3f400 100%);
+        }
+        input[type="time"]::-webkit-calendar-picker-indicator,
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+        /* Custom Toggle Switch Style */
+        .toggle-checkbox:checked {
+            @apply right-0 bg-primary-fixed;
+            right: 0;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            @apply bg-primary-fixed/20;
+        }
+    </style>
+<style>
+        body {
+            min-height: 100dvh;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body antialiased">
+<!-- Dashboard Background (Mockup) -->
+<div class="fixed inset-0 z-0 opacity-20 pointer-events-none p-6">
+<header class="flex justify-between items-center mb-12">
+<h1 class="font-headline font-black text-4xl italic tracking-tighter text-primary-fixed">KINETIC</h1>
+<span class="material-symbols-outlined text-3xl">fitness_center</span>
+</header>
+<div class="grid grid-cols-2 gap-4">
+<div class="h-32 bg-surface-container-high rounded-md"></div>
+<div class="h-32 bg-surface-container-high rounded-md"></div>
+<div class="h-64 col-span-2 bg-surface-container-high rounded-md"></div>
+</div>
+</div>
+<!-- Bottom Sheet Scrim -->
+<div class="fixed inset-0 z-10 bg-surface-container-lowest/80 backdrop-blur-md"></div>
+<!-- Bottom Sheet Container -->
+<div class="fixed inset-x-0 bottom-0 z-20 flex flex-col items-center">
+<!-- Sheet Handle -->
+<div class="w-12 h-1.5 bg-surface-container-highest rounded-full mb-3"></div>
+<!-- Sheet Content -->
+<div class="w-full max-w-2xl bg-surface rounded-t-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[90vh] relative border-t border-white/5">
+<!-- Header -->
+<div class="flex flex-col mb-10">
+<div class="flex justify-between items-start mb-2">
+<h2 class="font-headline font-black text-4xl tracking-tighter uppercase italic text-on-surface">SETTINGS</h2>
+</div>
+<div class="h-1 w-16 bg-primary-fixed"></div>
+</div>
+<!-- Form Fields -->
+<form class="space-y-8">
+<!-- Morning Reminder -->
+<div class="space-y-3">
+<label class="font-headline text-xs font-bold uppercase tracking-[0.2em] text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[1.1rem]">wb_sunny</span>
+                        Morning Reminder
+                    </label>
+<div class="relative group">
+<input class="w-full bg-surface-container-low border border-outline-variant/20 text-on-surface p-4 h-16 rounded-xl focus:ring-1 focus:ring-primary-fixed focus:border-primary-fixed font-body text-xl transition-all outline-none" type="time" value="08:28"/>
+</div>
+</div>
+<!-- Afternoon Nudge -->
+<div class="space-y-3">
+<label class="font-headline text-xs font-bold uppercase tracking-[0.2em] text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[1.1rem]">light_mode</span>
+                        Afternoon Nudge
+                    </label>
+<div class="relative group">
+<input class="w-full bg-surface-container-low border border-outline-variant/20 text-on-surface p-4 h-16 rounded-xl focus:ring-1 focus:ring-primary-fixed focus:border-primary-fixed font-body text-xl transition-all outline-none" type="time" value="08:29"/>
+</div>
+</div>
+<!-- Evening Interrupt -->
+<div class="space-y-3">
+<label class="font-headline text-xs font-bold uppercase tracking-[0.2em] text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[1.1rem]">bedtime</span>
+                        Evening Interrupt
+                    </label>
+<div class="relative group">
+<input class="w-full bg-surface-container-low border border-outline-variant/20 text-on-surface p-4 h-16 rounded-xl focus:ring-1 focus:ring-primary-fixed focus:border-primary-fixed font-body text-xl transition-all outline-none" type="time" value="08:30"/>
+</div>
+</div>
+<!-- Adaptive Timing Toggle -->
+<div class="flex items-center justify-between py-4 border-t border-outline-variant/10">
+<div class="flex flex-col gap-1 pr-4">
+<span class="font-headline text-sm font-bold uppercase tracking-widest text-on-surface">Adaptive Timing</span>
+<p class="text-xs text-on-surface-variant/60 font-medium leading-relaxed">Auto-adjust morning reminder based on when you train</p>
+</div>
+<div class="relative inline-block w-12 h-6 transition duration-200 ease-in-out align-middle select-none shrink-0">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-surface-container-highest border-4 border-transparent appearance-none cursor-pointer outline-none transition-all duration-200 right-6 checked:right-0 checked:bg-primary-fixed" id="toggle" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container-high cursor-pointer transition-colors duration-200" for="toggle"></label>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col gap-3 pt-4">
+<button class="w-full h-16 bg-kinetic-gradient text-on-primary-container font-headline font-black text-xl uppercase italic tracking-widest rounded-xl hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-primary-container/10" type="submit">
+                        Save Changes
+                    </button>
+<button class="w-full h-16 bg-surface-container-high text-on-surface font-headline font-bold text-base uppercase tracking-widest rounded-xl hover:bg-surface-container-highest transition-colors active:scale-[0.98]" type="button">
+                        Cancel
+                    </button>
+<button class="mt-4 text-[10px] font-headline font-bold uppercase tracking-[0.2em] text-on-surface-variant/40 hover:text-on-surface-variant/80 transition-colors w-full text-center" type="button">
+                        Set Current Day
+                    </button>
+</div>
+</form>
+</div>
+</div>
+</body></html>

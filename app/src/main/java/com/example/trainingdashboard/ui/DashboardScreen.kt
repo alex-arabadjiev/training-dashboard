@@ -54,7 +54,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
@@ -68,7 +67,6 @@ import com.example.trainingdashboard.ui.components.DayHeader
 import com.example.trainingdashboard.ui.components.ExerciseCard
 import com.example.trainingdashboard.ui.components.PermissionBanner
 import com.example.trainingdashboard.ui.theme.KineticGreen
-import com.example.trainingdashboard.ui.theme.KineticGreenDim
 import com.example.trainingdashboard.ui.theme.KineticBackground
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainer
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainerHigh
