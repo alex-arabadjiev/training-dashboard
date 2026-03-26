@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WbSunny
@@ -41,6 +42,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -313,43 +315,41 @@ private fun SettingsBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // SAVE CHANGES button — neon gradient
-            Button(
-                onClick = {
-                    onSave(
-                        "",
-                        morningHour, morningMinute,
-                        afternoonHour, afternoonMinute,
-                        eveningHour, eveningMinute,
-                        adaptiveEnabled
-                    )
-                },
+            // SAVE CHANGES button
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                shape = RoundedCornerShape(12.dp)
+                    .height(64.dp)
+                    .background(KineticGreen, RoundedCornerShape(12.dp))
+                    .clickable {
+                        onSave(
+                            "",
+                            morningHour, morningMinute,
+                            afternoonHour, afternoonMinute,
+                            eveningHour, eveningMinute,
+                            adaptiveEnabled
+                        )
+                    },
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(KineticGreenDim, KineticGreen)
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ),
-                    contentAlignment = Alignment.Center
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "SAVE CHANGES",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontStyle = FontStyle.Italic,
-                            fontSize = 20.sp,
-                            letterSpacing = 1.sp
+                            fontSize = 18.sp
                         ),
                         color = KineticBackground
+                    )
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = KineticBackground,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
@@ -405,21 +405,101 @@ private fun SettingsBottomSheet(
 
         AlertDialog(
             onDismissRequest = { editingTimePicker = null },
-            title = { Text(title) },
-            text = { TimePicker(state = pickerState) },
-            confirmButton = {
-                TextButton(onClick = {
-                    when (which) {
-                        "morning" -> { morningHour = pickerState.hour; morningMinute = pickerState.minute }
-                        "afternoon" -> { afternoonHour = pickerState.hour; afternoonMinute = pickerState.minute }
-                        "evening" -> { eveningHour = pickerState.hour; eveningMinute = pickerState.minute }
-                    }
-                    editingTimePicker = null
-                }) { Text("OK") }
+            containerColor = KineticSurfaceContainer,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            title = {
+                Text(
+                    text = title.uppercase(),
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Black,
+                        fontStyle = FontStyle.Italic,
+                        letterSpacing = 1.sp
+                    )
+                )
             },
-            dismissButton = {
-                TextButton(onClick = { editingTimePicker = null }) { Text("Cancel") }
-            }
+            text = {
+                TimePicker(
+                    state = pickerState,
+                    colors = TimePickerDefaults.colors(
+                        clockDialColor = KineticBackground,
+                        clockDialSelectedContentColor = KineticBackground,
+                        clockDialUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
+                        selectorColor = KineticGreen,
+                        containerColor = KineticSurfaceContainer,
+                        periodSelectorBorderColor = KineticGreen.copy(alpha = 0.3f),
+                        periodSelectorSelectedContainerColor = KineticGreen,
+                        periodSelectorUnselectedContainerColor = KineticBackground,
+                        periodSelectorSelectedContentColor = KineticBackground,
+                        periodSelectorUnselectedContentColor = KineticOnSurfaceVariant,
+                        timeSelectorSelectedContainerColor = KineticGreen,
+                        timeSelectorUnselectedContainerColor = KineticBackground,
+                        timeSelectorSelectedContentColor = KineticBackground,
+                        timeSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface,
+                    )
+                )
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .background(KineticBackground, RoundedCornerShape(8.dp))
+                            .clickable { editingTimePicker = null },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "CANCEL",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Black,
+                                fontStyle = FontStyle.Italic,
+                                fontSize = 18.sp
+                            ),
+                            color = KineticOnSurfaceVariant
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .background(KineticGreen, RoundedCornerShape(8.dp))
+                            .clickable {
+                                when (which) {
+                                    "morning" -> { morningHour = pickerState.hour; morningMinute = pickerState.minute }
+                                    "afternoon" -> { afternoonHour = pickerState.hour; afternoonMinute = pickerState.minute }
+                                    "evening" -> { eveningHour = pickerState.hour; eveningMinute = pickerState.minute }
+                                }
+                                editingTimePicker = null
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "SET",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontStyle = FontStyle.Italic,
+                                    fontSize = 18.sp
+                                ),
+                                color = KineticBackground
+                            )
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = KineticBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            dismissButton = null
         )
     }
 
