@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -103,12 +102,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
             .background(KineticBackground)
     ) {
         if (state.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = KineticGreen)
-            }
+            SplashScreen()
         } else {
             val totalTarget = state.exercises.sumOf { it.targetCount }
             val totalCompleted = state.exercises.sumOf { it.completedCount }

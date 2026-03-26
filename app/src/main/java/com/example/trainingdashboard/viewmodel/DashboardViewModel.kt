@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -52,6 +53,8 @@ class DashboardViewModel(
 ) : AndroidViewModel(application) {
 
     companion object {
+        private const val SPLASH_MIN_MS = 1500L
+
         val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
@@ -77,6 +80,7 @@ class DashboardViewModel(
     private fun loadDashboard() {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
+            val splashStart = System.currentTimeMillis()
             val startDate = ensureStartDate()
             val dayNumber = computeDayNumber(startDate)
 
@@ -108,6 +112,8 @@ class DashboardViewModel(
                     isLoading = false
                 )
             }.collect { state ->
+                val elapsed = System.currentTimeMillis() - splashStart
+                if (elapsed < SPLASH_MIN_MS) delay(SPLASH_MIN_MS - elapsed)
                 _uiState.value = state
             }
         }
