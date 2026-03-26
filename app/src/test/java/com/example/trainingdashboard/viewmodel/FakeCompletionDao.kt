@@ -15,12 +15,8 @@ class FakeCompletionDao : CompletionDao {
     override suspend fun getCompletionsForDaySnapshot(day: Int): List<DailyCompletion> =
         completions.value.filter { it.dayNumber == day }
 
-    override suspend fun getFullyCompletedDays(): List<Int> {
-        val grouped = completions.value.groupBy { it.dayNumber }
-        return grouped.entries
-            .filter { (_, entries) -> entries.size == 3 && entries.all { it.completed } }
-            .map { it.key }
-    }
+    override suspend fun getAllCompletedExercises(): List<DailyCompletion> =
+        completions.value.filter { it.completed }
 
     override suspend fun upsertCompletion(completion: DailyCompletion) {
         val current = completions.value.toMutableList()

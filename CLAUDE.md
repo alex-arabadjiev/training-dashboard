@@ -2,10 +2,21 @@
 
 ## Project Overview
 
-Android app that tracks a progressive daily exercise routine. Daily targets scale linearly based on day number:
-- Day N: N push-ups, 2N sit-ups, 3N squats
+Android app that tracks a progressive daily exercise routine with adaptive goal setting. Exercise targets scale with a goal level (N) that adjusts based on daily performance:
+- Goal level N: N push-ups, 2N sit-ups, 3N squats
 
-Features: exercise completion tracking, streak counter, daily reminder notifications, settings dialog.
+**Goal level transitions** (evaluated each calendar day against the previous day's performance):
+- 100% completion → N+1
+- 33–99% completion → hold at N
+- <33% completion → N-1 (floor: 1)
+
+Progress is weighted by rep count: `completed reps / (N + 2N + 3N)`.
+
+**Day N** (displayed prominently) = number of days where the user achieved ≥33% progress — not calendar days. This is computed from the Room database, no extra DataStore key needed.
+
+The adaptive system is intentionally invisible to the user. There is no streak counter, no demotion messaging, no explanation of the rules. The user simply sees "Day N" and today's targets. Goals self-calibrate quietly.
+
+Features: exercise completion tracking, adaptive goal progression, daily reminder notifications, settings dialog.
 
 ## Tech Stack
 

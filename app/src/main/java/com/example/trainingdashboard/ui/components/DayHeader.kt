@@ -18,14 +18,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.trainingdashboard.ui.theme.KineticGreen
-import com.example.trainingdashboard.ui.theme.KineticGreenDim
 import com.example.trainingdashboard.ui.theme.KineticOnSurface
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainerHigh
 
 @Composable
 fun DayHeader(
     dayNumber: Int,
-    streak: Int,
+    goalLevel: Int,
     progressPercent: Int,
     modifier: Modifier = Modifier
 ) {
@@ -33,22 +32,20 @@ fun DayHeader(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Streak chip
-        if (streak > 0) {
-            Box(
-                modifier = Modifier
-                    .background(
-                        color = KineticSurfaceContainerHigh,
-                        shape = RoundedCornerShape(50)
-                    )
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = "STREAK: $streak DAYS",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = KineticGreen
+        // Goal level chip
+        Box(
+            modifier = Modifier
+                .background(
+                    color = KineticSurfaceContainerHigh,
+                    shape = RoundedCornerShape(50)
                 )
-            }
+                .padding(horizontal = 14.dp, vertical = 6.dp)
+        ) {
+            Text(
+                text = "LEVEL $goalLevel",
+                style = MaterialTheme.typography.labelSmall,
+                color = KineticGreen
+            )
         }
 
         // Day number + progress percentage
