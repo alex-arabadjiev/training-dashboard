@@ -87,7 +87,7 @@ Priority areas for additional tests:
 
 ## UI & Design
 
-The app uses the **Kinetic design system** — a custom visual language documented in `designs/DESIGN_GUIDE.md`. Read it before making any UI changes. Key rules summarised below; the guide is authoritative.
+The app uses the **Kinetic design system** — a custom visual language documented in `.agents/context/DESIGN_GUIDE.md`. Read it before making any UI changes. Key rules summarised below; the guide is authoritative.
 
 ### Design Tokens
 - All colors must use named `Kinetic*` tokens from `ui/theme/Color.kt` — never hardcode hex values or use raw `Color.Black` / `Color.White` for surfaces
@@ -100,12 +100,12 @@ The app uses the **Kinetic design system** — a custom visual language document
 - **Secondary/cancel buttons:** Material `Button` with `KineticSurfaceContainerHigh` container, or `Box + .clickable {}` — consistent with surrounding elements
 - **Icon boxes:** 56dp square, `KineticSurfaceContainerHigh` background, 12dp radius
 - **All UI label text is UPPERCASE** — no sentence case in controls or labels
-- When in doubt, check `designs/DESIGN_GUIDE.md` before inventing a new pattern
+- When in doubt, check `.agents/context/DESIGN_GUIDE.md` before inventing a new pattern
 
 ### Before Adding New UI
 1. Check the design guide for an existing pattern that covers the use case
 2. Use established token values — don't introduce new hardcoded sizes or colors
-3. If adding a new pattern, document it in `designs/DESIGN_GUIDE.md`
+3. If adding a new pattern, document it in `.agents/context/DESIGN_GUIDE.md`
 
 ## Critical Rules
 
