@@ -135,5 +135,4 @@ The app uses the **Kinetic design system** — a custom visual language document
 - Test day computation, streak logic, and goal formulas with boundary values (day 0, day 1, large N)
 
 ## Documentation Lookup
-Always use Context7 MCP when you need library/API documentation, code generation,
-setup or configuration steps. Add "use context7" to prompts or it will be auto-invoked.
+Only use Context7 MCP when explicitly asked. If you think it would help, ask for permission first — do not auto-invoke it.
