@@ -49,11 +49,12 @@ app/src/main/java/com/example/trainingdashboard/
 
 ## Commands
 
-- `gradle assembleDebug` — build debug APK (output: `app/build/outputs/apk/debug/app-debug.apk`)
-- `gradle assembleRelease` — build signed release APK (requires `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` env vars)
-- `gradle test` — run unit tests
+- `./gradlew :app:assembleDebug` — build debug APK (output: `app/build/outputs/apk/debug/app-debug.apk`)
+- `./gradlew :app:assembleRelease` — build signed release APK (requires `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` env vars)
+- `./gradlew :app:testDebugUnitTest` — run unit tests
+- `./gradlew :app:installDebug` — build + install on connected device/emulator
 
-Use the system `gradle` command, not `./gradlew` (wrapper jar is not checked in).
+Use `./gradlew` (the wrapper, Gradle 8.5). The system `gradle` (4.4.1) is too old to build this project.
 
 ## Architecture Notes
 
@@ -77,10 +78,34 @@ Use the system `gradle` command, not `./gradlew` (wrapper jar is not checked in)
 
 ## Testing
 
-No tests exist yet. Priority areas for future tests:
-- ViewModel: day computation, goal formulas, streak calculation
-- Room DAO: completion queries, upsert behavior
-- UI: exercise card interactions, settings dialog
+Unit tests exist in `app/src/test/` covering ExerciseTargets, day computation, streak logic, count clamping, and FakeCompletionDao. Run with `./gradlew :app:testDebugUnitTest`.
+
+Priority areas for additional tests:
+- Room DAO: completion queries, upsert behavior (instrumented)
+- UI: exercise card interactions, settings dialog (instrumented)
+- Full ViewModel integration tests (requires Robolectric for AndroidViewModel)
+
+## UI & Design
+
+The app uses the **Kinetic design system** — a custom visual language documented in `.agents/context/DESIGN_GUIDE.md`. Read it before making any UI changes. Key rules summarised below; the guide is authoritative.
+
+### Design Tokens
+- All colors must use named `Kinetic*` tokens from `ui/theme/Color.kt` — never hardcode hex values or use raw `Color.Black` / `Color.White` for surfaces
+- Never reference `MaterialTheme.colorScheme.primary` or other Material defaults for styled UI — resolve to a Kinetic token
+- `KineticGreenDim` is deprecated; do not use
+
+### Component Rules
+- **Corner radius:** minimum 12dp on all cards, buttons, and containers; 8dp only for dialog sub-buttons; 50 for pills/chips
+- **Primary CTA buttons:** `Box + .clickable {}` (not Material `Button`), 64dp tall, full-width, `KineticGreen` background, 18sp Black Italic text, `CheckCircle` icon
+- **Secondary/cancel buttons:** Material `Button` with `KineticSurfaceContainerHigh` container, or `Box + .clickable {}` — consistent with surrounding elements
+- **Icon boxes:** 56dp square, `KineticSurfaceContainerHigh` background, 12dp radius
+- **All UI label text is UPPERCASE** — no sentence case in controls or labels
+- When in doubt, check `.agents/context/DESIGN_GUIDE.md` before inventing a new pattern
+
+### Before Adding New UI
+1. Check the design guide for an existing pattern that covers the use case
+2. Use established token values — don't introduce new hardcoded sizes or colors
+3. If adding a new pattern, document it in `.agents/context/DESIGN_GUIDE.md`
 
 ## Critical Rules
 
