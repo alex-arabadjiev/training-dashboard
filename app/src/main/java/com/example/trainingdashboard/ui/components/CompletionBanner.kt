@@ -35,7 +35,7 @@ fun CompletionBanner(modifier: Modifier = Modifier) {
     ) {
         // Background watermark
         Text(
-            text = "WIN",
+            text = "N+1",
             style = MaterialTheme.typography.displayLarge.copy(
                 fontWeight = FontWeight.Black,
                 fontStyle = FontStyle.Italic,
@@ -59,7 +59,7 @@ fun CompletionBanner(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "MOMENTUM",
+                text = "PUSH FURTHER",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Black,
                     fontStyle = FontStyle.Italic,
@@ -70,7 +70,7 @@ fun CompletionBanner(modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "COMPOUNDS",
+                text = "THAN YESTERDAY",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Black,
                     fontStyle = FontStyle.Italic,
@@ -82,7 +82,7 @@ fun CompletionBanner(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "v${BuildConfig.VERSION_NAME} :: MOMENTUM.INIT",
+                text = "v${BuildConfig.VERSION_NAME} :: THRESHOLD.ADVANCING",
                 style = MaterialTheme.typography.labelSmall.copy(
                     letterSpacing = 3.sp
                 ),
