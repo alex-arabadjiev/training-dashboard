@@ -39,6 +39,12 @@ class FakePreferencesRepository {
     private val _adaptiveTimingEnabled = MutableStateFlow(false)
     val adaptiveTimingEnabled: Flow<Boolean> = _adaptiveTimingEnabled
 
+    private val _goalLevel = MutableStateFlow<Int?>(null)
+    val goalLevel: Flow<Int?> = _goalLevel
+
+    private val _lastEvaluatedDay = MutableStateFlow(0)
+    val lastEvaluatedDay: Flow<Int> = _lastEvaluatedDay
+
     suspend fun setStartDate(date: LocalDate) {
         _startDate.value = date
     }
@@ -62,8 +68,26 @@ class FakePreferencesRepository {
         _adaptiveTimingEnabled.value = enabled
     }
 
+    suspend fun setGoalLevel(level: Int) {
+        _goalLevel.value = level
+    }
+
+    suspend fun setLastEvaluatedDay(day: Int) {
+        _lastEvaluatedDay.value = day
+    }
+
     /** Seed a start date so tests can bypass the null-check in ensureStartDate(). */
     fun seedStartDate(date: LocalDate) {
         _startDate.value = date
+    }
+
+    /** Seed a goal level for tests that need a pre-existing level. */
+    fun seedGoalLevel(level: Int) {
+        _goalLevel.value = level
+    }
+
+    /** Seed last evaluated day for transition tests. */
+    fun seedLastEvaluatedDay(day: Int) {
+        _lastEvaluatedDay.value = day
     }
 }

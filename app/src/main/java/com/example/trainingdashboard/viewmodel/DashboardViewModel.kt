@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import com.example.trainingdashboard.TrainingApp
 import com.example.trainingdashboard.data.ExerciseTargets
+import com.example.trainingdashboard.data.GoalTransition
 import com.example.trainingdashboard.data.PreferencesRepository
 import com.example.trainingdashboard.data.db.CompletionDao
 import com.example.trainingdashboard.data.db.DailyCompletion
@@ -31,10 +32,10 @@ data class ExerciseState(
 )
 
 data class DashboardUiState(
-    val dayNumber: Int = 1,
+    val dayNumber: Int = 0,
+    val goalLevel: Int = 1,
     val exercises: List<ExerciseState> = emptyList(),
     val allCompleted: Boolean = false,
-    val streak: Int = 0,
     val reminderHour: Int = 8,
     val reminderMinute: Int = 0,
     val afternoonNudgeHour: Int = 14,
@@ -69,6 +70,7 @@ class DashboardViewModel(
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     private var loadJob: Job? = null
+    private var todayCalendarDay: Int = 1
 
     init {
         loadDashboard()
@@ -78,10 +80,43 @@ class DashboardViewModel(
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             val startDate = ensureStartDate()
-            val dayNumber = computeDayNumber(startDate)
+            todayCalendarDay = computeDayNumber(startDate)
+
+            val storedGoalLevel = prefsRepo.goalLevel.first()
+            var lastEvaluatedDay = prefsRepo.lastEvaluatedDay.first()
+
+            // Migration for existing users: if goal_level was never set, initialise from calendar day
+            val resolvedGoalLevel: Int
+            if (storedGoalLevel == null) {
+                val migratedLevel = maxOf(todayCalendarDay, GoalTransition.GOAL_LEVEL_FLOOR)
+                prefsRepo.setGoalLevel(migratedLevel)
+                prefsRepo.setLastEvaluatedDay(todayCalendarDay - 1)
+                resolvedGoalLevel = migratedLevel
+                lastEvaluatedDay = todayCalendarDay - 1
+            } else {
+                resolvedGoalLevel = storedGoalLevel
+            }
+
+            // Catch-up loop — evaluate each unevaluated past day in order
+            var runningLevel = resolvedGoalLevel
+            for (day in (lastEvaluatedDay + 1)..(todayCalendarDay - 1)) {
+                val dayCompletions = completionDao.getCompletionsForDaySnapshot(day)
+                val progress = GoalTransition.computeProgress(dayCompletions, runningLevel)
+                runningLevel = GoalTransition.nextLevel(runningLevel, progress)
+            }
+
+            // Persist updated goal level and last evaluated day
+            prefsRepo.setGoalLevel(runningLevel)
+            prefsRepo.setLastEvaluatedDay(todayCalendarDay - 1)
+
+            // Compute active day count from all completed exercises
+            val allCompleted = completionDao.getAllCompletedExercises()
+            val activeDayCount = GoalTransition.computeActiveDayCount(allCompleted)
+
+            val finalGoalLevel = runningLevel
 
             combine(
-                completionDao.getCompletionsForDay(dayNumber),
+                completionDao.getCompletionsForDay(todayCalendarDay),
                 prefsRepo.reminderHour,
                 prefsRepo.reminderMinute,
                 prefsRepo.afternoonNudgeHour,
@@ -92,12 +127,12 @@ class DashboardViewModel(
             ) { values ->
                 @Suppress("UNCHECKED_CAST")
                 val completions = values[0] as List<DailyCompletion>
-                val exercises = buildExercises(dayNumber, completions)
+                val exercises = buildExercises(finalGoalLevel, completions)
                 DashboardUiState(
-                    dayNumber = dayNumber,
+                    dayNumber = activeDayCount,
+                    goalLevel = finalGoalLevel,
                     exercises = exercises,
                     allCompleted = exercises.all { it.isCompleted },
-                    streak = computeStreak(dayNumber),
                     reminderHour = values[1] as Int,
                     reminderMinute = values[2] as Int,
                     afternoonNudgeHour = values[3] as Int,
@@ -122,7 +157,7 @@ class DashboardViewModel(
         viewModelScope.launch {
             completionDao.upsertCompletion(
                 DailyCompletion(
-                    dayNumber = state.dayNumber,
+                    dayNumber = todayCalendarDay,
                     exercise = exerciseName,
                     completed = newCompleted,
                     completedCount = newCount
@@ -140,7 +175,7 @@ class DashboardViewModel(
         viewModelScope.launch {
             completionDao.upsertCompletion(
                 DailyCompletion(
-                    dayNumber = state.dayNumber,
+                    dayNumber = todayCalendarDay,
                     exercise = exerciseName,
                     completed = completed,
                     completedCount = clampedCount
@@ -149,11 +184,10 @@ class DashboardViewModel(
         }
     }
 
-    fun setCurrentDay(day: Int) {
-        if (day < 1) return
+    fun setGoalLevel(level: Int) {
+        if (level < 1) return
         viewModelScope.launch {
-            val newStartDate = LocalDate.now().minusDays((day - 1).toLong())
-            prefsRepo.setStartDate(newStartDate)
+            prefsRepo.setGoalLevel(level)
             loadDashboard()
         }
     }
@@ -212,11 +246,11 @@ class DashboardViewModel(
     }
 
     private fun buildExercises(
-        dayNumber: Int,
+        goalLevel: Int,
         completions: List<DailyCompletion>
     ): List<ExerciseState> {
         val completionMap = completions.associateBy { it.exercise }
-        return ExerciseTargets.forDay(dayNumber).map { (name, target) ->
+        return ExerciseTargets.forDay(goalLevel).map { (name, target) ->
             val completion = completionMap[name]
             ExerciseState(
                 name = name,
@@ -225,16 +259,5 @@ class DashboardViewModel(
                 isCompleted = completion?.completed ?: false
             )
         }
-    }
-
-    private suspend fun computeStreak(currentDay: Int): Int {
-        val completedDays = completionDao.getFullyCompletedDays().toSet()
-        var streak = 0
-        var day = currentDay
-        while (day > 0 && completedDays.contains(day)) {
-            streak++
-            day--
-        }
-        return streak
     }
 }

@@ -1,23 +1,32 @@
 # Training Dashboard
 
-An Android app that tracks a simple progressive daily exercise routine. You start with 1 push-up, 2 sit-ups, and 3 squats on Day 1 — each day the targets increase by +1, +2, and +3 respectively.
+An Android app that tracks a progressive daily exercise routine with adaptive goal setting. You start at goal level 1 — targets increase as you hit your goals, hold when you make a solid effort, and ease back slightly on rough days.
 
 ## Features
 
-- **Daily goal dashboard** — Shows your current day number and exercise targets
+- **Daily goal dashboard** — Shows your training day count and today's exercise targets
 - **Tap to complete** — Mark each exercise done; cards turn green with animated feedback
-- **Streak tracking** — Completion banner with consecutive-day streak count when all exercises are finished
+- **Adaptive goals** — Goal level adjusts automatically based on yesterday's performance
 - **Morning reminder** — Configurable daily notification via WorkManager (default: 8:00 AM)
 - **Persistent progress** — Completion state and preferences survive app restarts
 
 ## Goal Progression
 
-| Day | Push-ups | Sit-ups | Squats |
-|-----|----------|---------|--------|
-| 1   | 1        | 2       | 3      |
-| 2   | 2        | 4       | 6      |
-| 10  | 10       | 20      | 30     |
-| N   | N        | 2N      | 3N     |
+Targets are based on a goal level N that adapts each day:
+
+| Goal level | Push-ups | Sit-ups | Squats |
+|------------|----------|---------|--------|
+| 1          | 1        | 2       | 3      |
+| 2          | 2        | 4       | 6      |
+| 10         | 10       | 20      | 30     |
+| N          | N        | 2N      | 3N     |
+
+Goal level transitions daily based on the previous day's weighted rep completion:
+- **100%** → level up
+- **33–99%** → hold
+- **<33%** → level down (minimum: 1)
+
+**Day N** in the UI counts days where you achieved at least 33% — not calendar days.
 
 ## Tech Stack
 

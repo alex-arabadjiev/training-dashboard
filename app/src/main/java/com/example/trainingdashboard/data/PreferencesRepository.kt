@@ -25,6 +25,8 @@ class PreferencesRepository(private val context: Context) {
         val EVENING_INTERRUPT_HOUR = intPreferencesKey("evening_interrupt_hour")
         val EVENING_INTERRUPT_MINUTE = intPreferencesKey("evening_interrupt_minute")
         val ADAPTIVE_TIMING_ENABLED = booleanPreferencesKey("adaptive_timing_enabled")
+        val GOAL_LEVEL = intPreferencesKey("goal_level")
+        val LAST_EVALUATED_DAY = intPreferencesKey("last_evaluated_day")
     }
 
     val startDate: Flow<LocalDate?> = context.dataStore.data.map { prefs ->
@@ -89,6 +91,26 @@ class PreferencesRepository(private val context: Context) {
     suspend fun setAdaptiveTimingEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[Keys.ADAPTIVE_TIMING_ENABLED] = enabled
+        }
+    }
+
+    val goalLevel: Flow<Int?> = context.dataStore.data.map { prefs ->
+        prefs[Keys.GOAL_LEVEL]
+    }
+
+    val lastEvaluatedDay: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[Keys.LAST_EVALUATED_DAY] ?: 0
+    }
+
+    suspend fun setGoalLevel(level: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.GOAL_LEVEL] = level
+        }
+    }
+
+    suspend fun setLastEvaluatedDay(day: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.LAST_EVALUATED_DAY] = day
         }
     }
 }

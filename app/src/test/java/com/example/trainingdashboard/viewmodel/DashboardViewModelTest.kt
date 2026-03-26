@@ -1,7 +1,9 @@
 package com.example.trainingdashboard.viewmodel
 
 import com.example.trainingdashboard.data.ExerciseTargets
+import com.example.trainingdashboard.data.GoalTransition
 import com.example.trainingdashboard.data.db.DailyCompletion
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -11,7 +13,7 @@ import java.time.temporal.ChronoUnit
 /**
  * Unit tests for pure logic extracted from DashboardViewModel.
  *
- * Full ViewModel integration tests (streak computation via FakeCompletionDao,
+ * Full ViewModel integration tests (catch-up evaluation via FakeCompletionDao,
  * updateExerciseCount via the ViewModel itself) require Robolectric because
  * DashboardViewModel extends AndroidViewModel and PreferencesRepository takes a
  * Context. Add testImplementation("org.robolectric:robolectric:4.11.1") to
@@ -117,51 +119,59 @@ class DashboardViewModelTest {
     }
 
     // -------------------------------------------------------------------------
-    // Streak computation (pure function extracted for testing)
+    // Migration logic (using FakePreferencesRepository and FakeCompletionDao)
     // -------------------------------------------------------------------------
 
-    private fun computeStreak(currentDay: Int, completedDays: Set<Int>): Int {
-        var streak = 0
-        var day = currentDay
-        while (day > 0 && completedDays.contains(day)) {
-            streak++
-            day--
+    /**
+     * Simulates the migration logic from loadDashboard() to test it without
+     * requiring AndroidViewModel / Robolectric.
+     */
+    private suspend fun runMigration(
+        todayCalendarDay: Int,
+        prefs: FakePreferencesRepository
+    ): Int {
+        var goalLevel = prefs.goalLevel.first()
+        if (goalLevel == null) {
+            val migratedLevel = maxOf(todayCalendarDay, GoalTransition.GOAL_LEVEL_FLOOR)
+            prefs.setGoalLevel(migratedLevel)
+            prefs.setLastEvaluatedDay(todayCalendarDay - 1)
+            goalLevel = migratedLevel
         }
-        return streak
+        return goalLevel
     }
 
     @Test
-    fun `streak is zero when no days completed`() {
-        assertEquals(0, computeStreak(currentDay = 5, completedDays = emptySet()))
+    fun migrationSetsGoalLevelToCalendarDay() = runTest {
+        val prefs = FakePreferencesRepository()
+        // goalLevel is null (unset) — simulates an existing user on day 15
+        val todayCalendarDay = 15
+
+        val resultLevel = runMigration(todayCalendarDay, prefs)
+
+        assertEquals(15, resultLevel)
+        assertEquals(15, prefs.goalLevel.first())
     }
 
     @Test
-    fun `streak counts consecutive days from current day`() {
-        val completed = setOf(1, 2, 3, 4, 5)
-        assertEquals(5, computeStreak(currentDay = 5, completedDays = completed))
+    fun migrationSetsLastEvaluatedDayToYesterday() = runTest {
+        val prefs = FakePreferencesRepository()
+        val todayCalendarDay = 15
+
+        runMigration(todayCalendarDay, prefs)
+
+        assertEquals(14, prefs.lastEvaluatedDay.first())
     }
 
     @Test
-    fun `streak stops at gap in completed days`() {
-        // Days 3, 4, 5 are complete; day 2 is missing
-        val completed = setOf(3, 4, 5)
-        assertEquals(3, computeStreak(currentDay = 5, completedDays = completed))
-    }
+    fun newUserMigrationSetsGoalLevelToOne() = runTest {
+        val prefs = FakePreferencesRepository()
+        // Brand new user — today is day 1
+        val todayCalendarDay = 1
 
-    @Test
-    fun `streak is zero when current day is not completed`() {
-        val completed = setOf(1, 2, 3, 4)
-        assertEquals(0, computeStreak(currentDay = 5, completedDays = completed))
-    }
+        val resultLevel = runMigration(todayCalendarDay, prefs)
 
-    @Test
-    fun `streak is 1 when only current day is completed`() {
-        assertEquals(1, computeStreak(currentDay = 3, completedDays = setOf(3)))
-    }
-
-    @Test
-    fun `streak handles day 1 boundary`() {
-        assertEquals(1, computeStreak(currentDay = 1, completedDays = setOf(1)))
+        assertEquals(1, resultLevel)
+        assertEquals(1, prefs.goalLevel.first())
     }
 
     // -------------------------------------------------------------------------
@@ -169,27 +179,26 @@ class DashboardViewModelTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `FakeCompletionDao getFullyCompletedDays returns day when all 3 exercises completed`() = runTest {
+    fun `FakeCompletionDao getAllCompletedExercises returns only completed entries`() = runTest {
         val dao = FakeCompletionDao()
         dao.seedCompletions(
             DailyCompletion(dayNumber = 1, exercise = "Push-ups", completed = true, completedCount = 1),
-            DailyCompletion(dayNumber = 1, exercise = "Sit-ups", completed = true, completedCount = 2),
+            DailyCompletion(dayNumber = 1, exercise = "Sit-ups", completed = false, completedCount = 0),
             DailyCompletion(dayNumber = 1, exercise = "Squats", completed = true, completedCount = 3)
         )
-        val result = dao.getFullyCompletedDays()
-        assertEquals(listOf(1), result)
+        val result = dao.getAllCompletedExercises()
+        assertEquals(2, result.size)
+        assertEquals(true, result.all { it.completed })
     }
 
     @Test
-    fun `FakeCompletionDao getFullyCompletedDays excludes day with incomplete exercises`() = runTest {
+    fun `FakeCompletionDao getAllCompletedExercises returns empty when none completed`() = runTest {
         val dao = FakeCompletionDao()
         dao.seedCompletions(
-            DailyCompletion(dayNumber = 2, exercise = "Push-ups", completed = true, completedCount = 2),
-            DailyCompletion(dayNumber = 2, exercise = "Sit-ups", completed = false, completedCount = 0),
-            DailyCompletion(dayNumber = 2, exercise = "Squats", completed = true, completedCount = 6)
+            DailyCompletion(dayNumber = 1, exercise = "Push-ups", completed = false, completedCount = 0)
         )
-        val result = dao.getFullyCompletedDays()
-        assertEquals(emptyList<Int>(), result)
+        val result = dao.getAllCompletedExercises()
+        assertEquals(emptyList<DailyCompletion>(), result)
     }
 
     @Test

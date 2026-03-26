@@ -140,7 +140,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
 
                 DayHeader(
                     dayNumber = state.dayNumber,
-                    streak = state.streak,
+                    goalLevel = state.goalLevel,
                     progressPercent = progressPercent
                 )
 
@@ -168,10 +168,10 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
         SettingsBottomSheet(
             state = state,
             onDismiss = { showSettings = false },
-            onSave = { dayText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, adaptiveEnabled ->
-                val newDay = dayText.toIntOrNull()
-                if (newDay != null && newDay >= 1) {
-                    viewModel.setCurrentDay(newDay)
+            onSave = { goalLevelText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, adaptiveEnabled ->
+                val newLevel = goalLevelText.toIntOrNull()
+                if (newLevel != null && newLevel >= 1) {
+                    viewModel.setGoalLevel(newLevel)
                 }
                 viewModel.updateReminderTime(morningH, morningM)
                 viewModel.updateAfternoonNudgeTime(afternoonH, afternoonM)
@@ -377,13 +377,13 @@ private fun SettingsBottomSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // "Set Current Day" ghost link
+            // "Set Goal Level" ghost link
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "SET CURRENT DAY",
+                    text = "SET GOAL LEVEL",
                     style = MaterialTheme.typography.labelSmall.copy(
                         letterSpacing = 2.sp
                     ),
@@ -501,21 +501,21 @@ private fun SettingsBottomSheet(
         )
     }
 
-    // Day number dialog
+    // Set Goal Level dialog
     if (showDayDialog) {
-        var dayText by remember { mutableStateOf(state.dayNumber.toString()) }
+        var goalLevelText by remember { mutableStateOf(state.goalLevel.toString()) }
         AlertDialog(
             onDismissRequest = { showDayDialog = false },
-            title = { Text("Set Current Day") },
+            title = { Text("SET GOAL LEVEL") },
             text = {
                 OutlinedTextField(
-                    value = dayText,
+                    value = goalLevelText,
                     onValueChange = { value ->
                         if (value.isEmpty() || value.all { it.isDigit() }) {
-                            dayText = value
+                            goalLevelText = value
                         }
                     },
-                    label = { Text("Day number") },
+                    label = { Text("Goal level") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -524,7 +524,7 @@ private fun SettingsBottomSheet(
             confirmButton = {
                 TextButton(onClick = {
                     onSave(
-                        dayText,
+                        goalLevelText,
                         morningHour, morningMinute,
                         afternoonHour, afternoonMinute,
                         eveningHour, eveningMinute,
