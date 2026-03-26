@@ -83,10 +83,13 @@ fun LogRepsScreen(
                     .padding(horizontal = 8.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = {
-                    onUpdateCount(currentCount)
-                    onDone()
-                }) {
+                IconButton(
+                    onClick = {
+                        onUpdateCount(currentCount)
+                        onDone()
+                    },
+                    modifier = Modifier.size(64.dp)
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",

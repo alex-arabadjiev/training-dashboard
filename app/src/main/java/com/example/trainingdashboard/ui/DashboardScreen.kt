@@ -101,9 +101,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
             .fillMaxSize()
             .background(KineticBackground)
     ) {
-        if (state.isLoading) {
-            SplashScreen()
-        } else {
+        if (!state.isLoading) {
             val totalTarget = state.exercises.sumOf { it.targetCount }
             val totalCompleted = state.exercises.sumOf { it.completedCount }
             val progressPercent = if (totalTarget > 0) {

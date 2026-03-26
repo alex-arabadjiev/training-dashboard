@@ -19,9 +19,10 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.trainingdashboard.BuildConfig
 import com.example.trainingdashboard.ui.theme.KineticGreen
-import com.example.trainingdashboard.ui.theme.KineticSurfaceContainer
 import com.example.trainingdashboard.ui.theme.KineticOnSurfaceVariant
+import com.example.trainingdashboard.ui.theme.KineticSurfaceContainer
 
 @Composable
 fun CompletionBanner(modifier: Modifier = Modifier) {
@@ -58,7 +59,7 @@ fun CompletionBanner(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "PRECISION",
+                text = "MOMENTUM",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Black,
                     fontStyle = FontStyle.Italic,
@@ -69,7 +70,7 @@ fun CompletionBanner(modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "IN EVERY REP",
+                text = "COMPOUNDS",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Black,
                     fontStyle = FontStyle.Italic,
@@ -81,9 +82,9 @@ fun CompletionBanner(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "EXCELLENCE IS A HABIT",
+                text = "v${BuildConfig.VERSION_NAME} :: MOMENTUM.INIT",
                 style = MaterialTheme.typography.labelSmall.copy(
-                    letterSpacing = 4.sp
+                    letterSpacing = 3.sp
                 ),
                 color = KineticOnSurfaceVariant
             )

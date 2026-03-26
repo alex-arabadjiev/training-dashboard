@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.trainingdashboard.ui.theme.KineticGreen
 import com.example.trainingdashboard.ui.theme.KineticGreenDim
+import com.example.trainingdashboard.ui.theme.KineticOnSurface
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainerHigh
 
 @Composable
@@ -76,7 +77,7 @@ fun DayHeader(
                 Text(
                     text = "TOTAL PROGRESS",
                     style = MaterialTheme.typography.labelSmall,
-                    color = KineticGreenDim
+                    color = KineticOnSurface
                 )
             }
         }
