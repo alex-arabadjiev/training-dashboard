@@ -69,11 +69,17 @@ class DashboardViewModel(
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    private val _accelThresholds = MutableStateFlow<Map<String, Float?>>(
+        mapOf("Push-ups" to null, "Sit-ups" to null, "Squats" to null)
+    )
+    val accelThresholds: StateFlow<Map<String, Float?>> = _accelThresholds.asStateFlow()
+
     private var loadJob: Job? = null
     private var todayCalendarDay: Int = 1
 
     init {
         loadDashboard()
+        collectAccelThresholds()
     }
 
     private fun loadDashboard() {
@@ -229,6 +235,24 @@ class DashboardViewModel(
             } else {
                 ReminderScheduler.cancelAdaptiveTiming(getApplication())
             }
+        }
+    }
+
+    private fun collectAccelThresholds() {
+        viewModelScope.launch {
+            combine(
+                prefsRepo.accelThreshold("Push-ups"),
+                prefsRepo.accelThreshold("Sit-ups"),
+                prefsRepo.accelThreshold("Squats")
+            ) { pushUps, sitUps, squats ->
+                mapOf("Push-ups" to pushUps, "Sit-ups" to sitUps, "Squats" to squats)
+            }.collect { _accelThresholds.value = it }
+        }
+    }
+
+    fun saveAccelThreshold(exerciseName: String, threshold: Float) {
+        viewModelScope.launch {
+            prefsRepo.setAccelThreshold(exerciseName, threshold)
         }
     }
 

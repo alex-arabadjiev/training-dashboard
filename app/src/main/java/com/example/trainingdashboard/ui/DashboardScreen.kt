@@ -78,6 +78,7 @@ import com.example.trainingdashboard.viewmodel.ExerciseState
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = DashboardViewModel.Factory)) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val accelThresholds by viewModel.accelThresholds.collectAsStateWithLifecycle()
     var showSettings by remember { mutableStateOf(false) }
     var selectedExercise by remember { mutableStateOf<ExerciseState?>(null) }
 
@@ -88,6 +89,10 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
         val latestExercise = state.exercises.find { it.name == currentExercise.name } ?: currentExercise
         LogRepsScreen(
             exercise = latestExercise,
+            accelThreshold = accelThresholds[latestExercise.name],
+            onSaveAccelThreshold = { threshold ->
+                viewModel.saveAccelThreshold(latestExercise.name, threshold)
+            },
             onUpdateCount = { count ->
                 viewModel.updateExerciseCount(latestExercise.name, count)
             },

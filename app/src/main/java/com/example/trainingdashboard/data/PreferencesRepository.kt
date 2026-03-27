@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -27,6 +28,9 @@ class PreferencesRepository(private val context: Context) {
         val ADAPTIVE_TIMING_ENABLED = booleanPreferencesKey("adaptive_timing_enabled")
         val GOAL_LEVEL = intPreferencesKey("goal_level")
         val LAST_EVALUATED_DAY = intPreferencesKey("last_evaluated_day")
+        val ACCEL_THRESHOLD_PUSH_UPS = floatPreferencesKey("accel_threshold_push_ups")
+        val ACCEL_THRESHOLD_SIT_UPS = floatPreferencesKey("accel_threshold_sit_ups")
+        val ACCEL_THRESHOLD_SQUATS = floatPreferencesKey("accel_threshold_squats")
     }
 
     val startDate: Flow<LocalDate?> = context.dataStore.data.map { prefs ->
@@ -112,5 +116,23 @@ class PreferencesRepository(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[Keys.LAST_EVALUATED_DAY] = day
         }
+    }
+
+    fun accelThreshold(exerciseName: String): Flow<Float?> =
+        context.dataStore.data.map { prefs -> prefs[accelThresholdKey(exerciseName)] }
+
+    suspend fun setAccelThreshold(exerciseName: String, threshold: Float) {
+        context.dataStore.edit { prefs -> prefs[accelThresholdKey(exerciseName)] = threshold }
+    }
+
+    suspend fun clearAccelThreshold(exerciseName: String) {
+        context.dataStore.edit { prefs -> prefs.remove(accelThresholdKey(exerciseName)) }
+    }
+
+    private fun accelThresholdKey(exerciseName: String) = when (exerciseName) {
+        "Push-ups" -> Keys.ACCEL_THRESHOLD_PUSH_UPS
+        "Sit-ups"  -> Keys.ACCEL_THRESHOLD_SIT_UPS
+        "Squats"   -> Keys.ACCEL_THRESHOLD_SQUATS
+        else       -> throw IllegalArgumentException("Unknown exercise: $exerciseName")
     }
 }
