@@ -518,8 +518,7 @@ fun LogRepsScreen(
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 0.5.sp
                             ),
-                            color = if (sensorAvailable) KineticOnSurfaceVariant.copy(alpha = 2f)
-                                    else KineticOnSurfaceVariant.copy(alpha = 0.4f)
+                            color = KineticOnSurfaceVariant.copy(alpha = if (sensorAvailable) 1f else 0.4f)
                         )
                         Text(
                             text = "Auto-detect each ${exercise.name.lowercase().dropLast(1)}",
