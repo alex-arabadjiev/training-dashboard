@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.view.HapticFeedbackConstants
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Vibration
@@ -97,6 +98,11 @@ fun LogRepsScreen(
     }
     fun performLongVibrate() {
         vibrator?.vibrate(VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE))
+    }
+
+    BackHandler {
+        onUpdateCount(currentCount)
+        onDone()
     }
 
     LaunchedEffect(isEditing) {
