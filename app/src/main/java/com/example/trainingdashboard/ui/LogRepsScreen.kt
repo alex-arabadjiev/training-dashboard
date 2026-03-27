@@ -25,9 +25,14 @@ import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.view.HapticFeedbackConstants
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Vibration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -81,6 +86,18 @@ fun LogRepsScreen(
     val focusRequester = remember { FocusRequester() }
     var accelerometerMode by remember { mutableStateOf(false) }
     val isGoalComplete = currentCount >= exercise.targetCount
+    val view = LocalView.current
+    val vibrator = LocalContext.current.getSystemService(Vibrator::class.java)
+
+    fun performKeyClick() {
+        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING)
+    }
+    fun performShortVibrate() {
+        vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+    }
+    fun performLongVibrate() {
+        vibrator?.vibrate(VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE))
+    }
 
     LaunchedEffect(isEditing) {
         if (isEditing) {
@@ -305,7 +322,13 @@ fun LogRepsScreen(
                             .border(1.dp, KineticGreen.copy(alpha = if (isGoalComplete) 0.03f else 0.1f), RoundedCornerShape(12.dp))
                             .then(
                                 if (!isGoalComplete) Modifier.clickable {
-                                    currentCount = (currentCount + 1).coerceAtMost(exercise.targetCount)
+                                    val newCount = (currentCount + 1).coerceAtMost(exercise.targetCount)
+                                    when {
+                                        newCount >= exercise.targetCount -> performLongVibrate()
+                                        newCount % 10 == 0 -> performShortVibrate()
+                                        else -> performKeyClick()
+                                    }
+                                    currentCount = newCount
                                 } else Modifier
                             ),
                         contentAlignment = Alignment.Center
@@ -339,7 +362,9 @@ fun LogRepsScreen(
                             .border(1.dp, KineticGreen.copy(alpha = if (isGoalComplete) 0.03f else 0.1f), RoundedCornerShape(12.dp))
                             .then(
                                 if (!isGoalComplete) Modifier.clickable {
-                                    currentCount = (currentCount + 10).coerceAtMost(exercise.targetCount)
+                                    val newCount = (currentCount + 10).coerceAtMost(exercise.targetCount)
+                                    if (newCount >= exercise.targetCount) performLongVibrate() else performShortVibrate()
+                                    currentCount = newCount
                                 } else Modifier
                             ),
                         contentAlignment = Alignment.Center
