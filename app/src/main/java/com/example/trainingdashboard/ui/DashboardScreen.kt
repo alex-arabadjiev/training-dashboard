@@ -37,10 +37,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -506,7 +506,18 @@ private fun SettingsBottomSheet(
         var goalLevelText by remember { mutableStateOf(state.goalLevel.toString()) }
         AlertDialog(
             onDismissRequest = { showDayDialog = false },
-            title = { Text("SET GOAL LEVEL") },
+            containerColor = KineticSurfaceContainer,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            title = {
+                Text(
+                    text = "SET GOAL LEVEL",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Black,
+                        fontStyle = FontStyle.Italic,
+                        letterSpacing = 1.sp
+                    )
+                )
+            },
             text = {
                 OutlinedTextField(
                     value = goalLevelText,
@@ -515,27 +526,92 @@ private fun SettingsBottomSheet(
                             goalLevelText = value
                         }
                     },
-                    label = { Text("Goal level") },
+                    label = {
+                        Text(
+                            text = "GOAL LEVEL",
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = KineticGreen,
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
+                        cursorColor = KineticGreen,
+                        focusedLabelColor = KineticGreen,
+                        unfocusedLabelColor = KineticOnSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedContainerColor = KineticBackground,
+                        unfocusedContainerColor = KineticBackground,
+                    )
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    onSave(
-                        goalLevelText,
-                        morningHour, morningMinute,
-                        afternoonHour, afternoonMinute,
-                        eveningHour, eveningMinute,
-                        adaptiveEnabled
-                    )
-                    showDayDialog = false
-                }) { Text("Save") }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .background(KineticBackground, RoundedCornerShape(8.dp))
+                            .clickable { showDayDialog = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "CANCEL",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Black,
+                                fontStyle = FontStyle.Italic,
+                                fontSize = 18.sp
+                            ),
+                            color = KineticOnSurfaceVariant
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .background(KineticGreen, RoundedCornerShape(8.dp))
+                            .clickable {
+                                onSave(
+                                    goalLevelText,
+                                    morningHour, morningMinute,
+                                    afternoonHour, afternoonMinute,
+                                    eveningHour, eveningMinute,
+                                    adaptiveEnabled
+                                )
+                                showDayDialog = false
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "SAVE",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontStyle = FontStyle.Italic,
+                                    fontSize = 18.sp
+                                ),
+                                color = KineticBackground
+                            )
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = KineticBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
             },
-            dismissButton = {
-                TextButton(onClick = { showDayDialog = false }) { Text("Cancel") }
-            }
+            dismissButton = null
         )
     }
 }
