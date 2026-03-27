@@ -1,5 +1,13 @@
 package com.example.trainingdashboard.ui
 
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.view.HapticFeedbackConstants
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,15 +33,9 @@ import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.view.HapticFeedbackConstants
-import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Vibration
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,26 +44,30 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -74,10 +80,15 @@ import com.example.trainingdashboard.ui.theme.KineticOnSurfaceVariant
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainer
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainerHigh
 import com.example.trainingdashboard.viewmodel.ExerciseState
+import kotlin.math.sqrt
+
+private const val REP_DEBOUNCE_MS = 600L
 
 @Composable
 fun LogRepsScreen(
     exercise: ExerciseState,
+    accelThreshold: Float?,
+    onSaveAccelThreshold: (Float) -> Unit,
     onUpdateCount: (Int) -> Unit,
     onDone: () -> Unit
 ) {
@@ -86,12 +97,22 @@ fun LogRepsScreen(
     var editText by remember { mutableStateOf(TextFieldValue("")) }
     val focusRequester = remember { FocusRequester() }
     var accelerometerMode by remember { mutableStateOf(false) }
+    var showCalibration by remember { mutableStateOf(false) }
     val isGoalComplete = currentCount >= exercise.targetCount
+
+    val context = LocalContext.current
     val view = LocalView.current
-    val vibrator = LocalContext.current.getSystemService(Vibrator::class.java)
+    val vibrator = context.getSystemService(Vibrator::class.java)
+    val sensorManager = context.getSystemService(SensorManager::class.java)
+    val sensorAvailable = remember {
+        sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION) != null
+    }
 
     fun performKeyClick() {
-        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING)
+        view.performHapticFeedback(
+            HapticFeedbackConstants.KEYBOARD_TAP,
+            HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING
+        )
     }
     fun performShortVibrate() {
         vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
@@ -111,6 +132,40 @@ fun LogRepsScreen(
             editText = TextFieldValue(text, selection = TextRange(0, text.length))
             focusRequester.requestFocus()
         }
+    }
+
+    // Rep detection
+    var lastRepTimestampMs by remember { mutableLongStateOf(0L) }
+    DisposableEffect(accelerometerMode) {
+        if (!accelerometerMode || !sensorAvailable || accelThreshold == null) {
+            return@DisposableEffect onDispose {}
+        }
+        val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
+            ?: return@DisposableEffect onDispose {}
+
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                val x = event.values[0]; val y = event.values[1]; val z = event.values[2]
+                val magnitude = sqrt(x * x + y * y + z * z)
+                val now = System.currentTimeMillis()
+                if (magnitude > accelThreshold && now - lastRepTimestampMs > REP_DEBOUNCE_MS) {
+                    lastRepTimestampMs = now
+                    val newCount = (currentCount + 1).coerceAtMost(exercise.targetCount)
+                    when {
+                        newCount >= exercise.targetCount -> {
+                            performLongVibrate()
+                            accelerometerMode = false
+                        }
+                        newCount % 10 == 0 -> performShortVibrate()
+                        else -> performKeyClick()
+                    }
+                    currentCount = newCount
+                }
+            }
+            override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) = Unit
+        }
+        sensorManager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_GAME)
+        onDispose { sensorManager.unregisterListener(listener) }
     }
 
     Box(
@@ -199,7 +254,6 @@ fun LogRepsScreen(
                             val arcSize = size.width - strokeWidth
                             val topLeft = Offset(strokeWidth / 2, strokeWidth / 2)
 
-                            // Background track
                             drawArc(
                                 color = trackColor,
                                 startAngle = -90f,
@@ -210,7 +264,6 @@ fun LogRepsScreen(
                                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                             )
 
-                            // Foreground arc
                             if (sweepAngle > 0f) {
                                 drawArc(
                                     color = KineticGreen,
@@ -233,35 +286,37 @@ fun LogRepsScreen(
                                     backgroundColor = Color.Transparent
                                 )
                             ) {
-                            BasicTextField(
-                                value = editText,
-                                onValueChange = { value ->
-                                    if (value.text.isEmpty() || value.text.all { it.isDigit() }) editText = value
-                                },
-                                textStyle = MaterialTheme.typography.displayLarge.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 96.sp,
-                                    lineHeight = 96.sp,
-                                    letterSpacing = (-2).sp,
-                                    color = Color.White,
-                                    textAlign = TextAlign.Center
-                                ),
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Number,
-                                    imeAction = ImeAction.Done
-                                ),
-                                keyboardActions = KeyboardActions(onDone = {
-                                    val count = editText.text.toIntOrNull() ?: currentCount
-                                    currentCount = count.coerceIn(0, exercise.targetCount)
-                                    isEditing = false
-                                }),
-                                singleLine = true,
-                                modifier = Modifier
-                                    .width(200.dp)
-                                    .focusRequester(focusRequester),
-                                decorationBox = { innerTextField -> innerTextField() }
-                            )
-                            } // CompositionLocalProvider
+                                BasicTextField(
+                                    value = editText,
+                                    onValueChange = { value ->
+                                        if (value.text.isEmpty() || value.text.all { it.isDigit() }) {
+                                            editText = value
+                                        }
+                                    },
+                                    textStyle = MaterialTheme.typography.displayLarge.copy(
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 96.sp,
+                                        lineHeight = 96.sp,
+                                        letterSpacing = (-2).sp,
+                                        color = Color.White,
+                                        textAlign = TextAlign.Center
+                                    ),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number,
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    keyboardActions = KeyboardActions(onDone = {
+                                        val count = editText.text.toIntOrNull() ?: currentCount
+                                        currentCount = count.coerceIn(0, exercise.targetCount)
+                                        isEditing = false
+                                    }),
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .width(200.dp)
+                                        .focusRequester(focusRequester),
+                                    decorationBox = { innerTextField -> innerTextField() }
+                                )
+                            }
                         } else {
                             Text(
                                 text = "$currentCount",
@@ -275,7 +330,6 @@ fun LogRepsScreen(
                                 modifier = Modifier.clickable { isEditing = true }
                             )
                         }
-                        // Green accent bar below number
                         Box(
                             modifier = Modifier
                                 .width(64.dp)
@@ -289,16 +343,17 @@ fun LogRepsScreen(
                             color = KineticOnSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        // GOAL pill
                         Box(
                             modifier = Modifier
                                 .background(
-                                    if (isGoalComplete) KineticGreen.copy(alpha = 0.15f) else KineticSurfaceContainerHigh,
+                                    if (isGoalComplete) KineticGreen.copy(alpha = 0.15f)
+                                    else KineticSurfaceContainerHigh,
                                     RoundedCornerShape(50)
                                 )
                                 .border(
                                     1.dp,
-                                    if (isGoalComplete) KineticGreen.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.05f),
+                                    if (isGoalComplete) KineticGreen.copy(alpha = 0.5f)
+                                    else Color.White.copy(alpha = 0.05f),
                                     RoundedCornerShape(50)
                                 )
                                 .padding(horizontal = 20.dp, vertical = 6.dp)
@@ -314,7 +369,7 @@ fun LogRepsScreen(
 
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // Action buttons row — tall cards
+                // Action buttons row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -325,7 +380,11 @@ fun LogRepsScreen(
                             .weight(1f)
                             .height(96.dp)
                             .background(KineticSurfaceContainer, RoundedCornerShape(12.dp))
-                            .border(1.dp, KineticGreen.copy(alpha = if (isGoalComplete) 0.03f else 0.1f), RoundedCornerShape(12.dp))
+                            .border(
+                                1.dp,
+                                KineticGreen.copy(alpha = if (isGoalComplete) 0.03f else 0.1f),
+                                RoundedCornerShape(12.dp)
+                            )
                             .then(
                                 if (!isGoalComplete) Modifier.clickable {
                                     val newCount = (currentCount + 1).coerceAtMost(exercise.targetCount)
@@ -365,11 +424,16 @@ fun LogRepsScreen(
                             .weight(1f)
                             .height(96.dp)
                             .background(KineticSurfaceContainer, RoundedCornerShape(12.dp))
-                            .border(1.dp, KineticGreen.copy(alpha = if (isGoalComplete) 0.03f else 0.1f), RoundedCornerShape(12.dp))
+                            .border(
+                                1.dp,
+                                KineticGreen.copy(alpha = if (isGoalComplete) 0.03f else 0.1f),
+                                RoundedCornerShape(12.dp)
+                            )
                             .then(
                                 if (!isGoalComplete) Modifier.clickable {
                                     val newCount = (currentCount + 10).coerceAtMost(exercise.targetCount)
-                                    if (newCount >= exercise.targetCount) performLongVibrate() else performShortVibrate()
+                                    if (newCount >= exercise.targetCount) performLongVibrate()
+                                    else performShortVibrate()
                                     currentCount = newCount
                                 } else Modifier
                             ),
@@ -424,57 +488,91 @@ fun LogRepsScreen(
 
                 // Accelerometer Mode toggle
                 Spacer(modifier = Modifier.height(24.dp))
-                    Row(
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(KineticSurfaceContainer, RoundedCornerShape(16.dp))
+                        .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .background(KineticSurfaceContainer, RoundedCornerShape(16.dp))
-                            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
-                            .padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .size(56.dp)
+                            .background(KineticSurfaceContainerHigh, RoundedCornerShape(12.dp))
+                            .then(if (!sensorAvailable) Modifier.alpha(0.4f) else Modifier),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .background(KineticSurfaceContainerHigh, RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Vibration,
-                                contentDescription = null,
-                                tint = KineticGreen,
-                                modifier = Modifier.size(24.dp)
+                        Icon(
+                            imageVector = Icons.Default.Vibration,
+                            contentDescription = null,
+                            tint = KineticGreen,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "ACCELEROMETER MODE",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.5.sp
+                            ),
+                            color = if (sensorAvailable) KineticOnSurfaceVariant.copy(alpha = 2f)
+                                    else KineticOnSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                        Text(
+                            text = "Auto-detect each ${exercise.name.lowercase().dropLast(1)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = KineticOnSurfaceVariant.copy(
+                                alpha = if (sensorAvailable) 1f else 0.4f
                             )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "ACCELEROMETER MODE",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 0.5.sp
+                        )
+                        when {
+                            !sensorAvailable -> Text(
+                                text = "Accelerometer not available on this device",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                color = KineticOnSurfaceVariant.copy(alpha = 0.4f)
+                            )
+                            accelThreshold != null -> Text(
+                                text = "CALIBRATE",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.sp,
+                                    letterSpacing = 1.sp
                                 ),
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = KineticGreen.copy(alpha = 0.7f),
+                                modifier = Modifier.clickable { showCalibration = true }
                             )
-                            Text(
-                                text = "Auto-detect each ${exercise.name.lowercase().dropLast(1)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = KineticOnSurfaceVariant
-                            )
-                            Text(
-                                text = "Experimental: requires extra permissions",
+                            else -> Text(
+                                text = "Needs calibration — toggle to begin",
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                                 color = KineticOnSurfaceVariant.copy(alpha = 0.5f)
                             )
                         }
-                        Switch(
-                            checked = accelerometerMode,
-                            onCheckedChange = { accelerometerMode = it },
-                            colors = SwitchDefaults.colors(
-                                checkedTrackColor = KineticGreen,
-                                checkedThumbColor = KineticBackground
-                            )
-                        )
                     }
+                    Switch(
+                        checked = accelerometerMode,
+                        onCheckedChange = { enabled ->
+                            if (!sensorAvailable) return@Switch
+                            if (enabled) {
+                                if (accelThreshold == null) {
+                                    showCalibration = true
+                                } else {
+                                    accelerometerMode = true
+                                }
+                            } else {
+                                accelerometerMode = false
+                            }
+                        },
+                        enabled = sensorAvailable,
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = KineticGreen,
+                            checkedThumbColor = KineticBackground,
+                            disabledUncheckedTrackColor = KineticOnSurfaceVariant.copy(alpha = 0.2f),
+                            disabledUncheckedThumbColor = KineticOnSurfaceVariant.copy(alpha = 0.3f)
+                        )
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(32.dp))
             }
@@ -514,6 +612,22 @@ fun LogRepsScreen(
                 }
             }
         }
-    }
 
+        // Calibration overlay — rendered on top of everything
+        if (showCalibration) {
+            CalibrationScreen(
+                exerciseName = exercise.name,
+                onSuccess = { threshold ->
+                    onSaveAccelThreshold(threshold)
+                    accelerometerMode = true
+                    showCalibration = false
+                },
+                onCancel = {
+                    // Do NOT touch accelThreshold — existing calibration survives cancel
+                    accelerometerMode = false
+                    showCalibration = false
+                }
+            )
+        }
+    }
 }
