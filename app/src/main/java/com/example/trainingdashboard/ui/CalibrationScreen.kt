@@ -1,9 +1,17 @@
 package com.example.trainingdashboard.ui
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -48,11 +56,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.example.trainingdashboard.sensor.CalibrationResult
 import com.example.trainingdashboard.sensor.RepCalibrator
 import com.example.trainingdashboard.sensor.TimestampedSample
@@ -89,6 +99,40 @@ fun CalibrationScreen(
     var uiState by remember { mutableStateOf<CalibrationUiState>(CalibrationUiState.Instructions) }
     val samples = remember { mutableListOf<TimestampedSample>() }
     val context = LocalContext.current
+    val view = LocalView.current
+
+    // --- Permission state ---
+    var permissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BODY_SENSORS) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var permanentlyDenied by remember { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        permissionGranted = granted
+        if (!granted) {
+            val activity = context as? ComponentActivity
+            val canAskAgain = activity?.shouldShowRequestPermissionRationale(Manifest.permission.BODY_SENSORS) ?: true
+            permanentlyDenied = !canAskAgain
+        }
+    }
+
+    // Request permission immediately when arriving at instructions
+    LaunchedEffect(Unit) {
+        if (!permissionGranted) {
+            permissionLauncher.launch(Manifest.permission.BODY_SENSORS)
+        }
+    }
+
+    // Keep screen on during countdown and recording so the sensor isn't suspended
+    val shouldKeepScreenOn = uiState is CalibrationUiState.Countdown || uiState is CalibrationUiState.Recording
+    DisposableEffect(shouldKeepScreenOn) {
+        view.keepScreenOn = shouldKeepScreenOn
+        onDispose { view.keepScreenOn = false }
+    }
 
     // Countdown ticker
     LaunchedEffect(uiState) {
@@ -151,6 +195,9 @@ fun CalibrationScreen(
         when (val state = uiState) {
             is CalibrationUiState.Instructions -> InstructionsPage(
                 exerciseName = exerciseName,
+                permissionGranted = permissionGranted,
+                permanentlyDenied = permanentlyDenied,
+                onRequestPermission = { permissionLauncher.launch(Manifest.permission.BODY_SENSORS) },
                 onStart = { uiState = CalibrationUiState.Countdown(3) },
                 onCancel = onCancel
             )
@@ -173,7 +220,16 @@ fun CalibrationScreen(
 }
 
 @Composable
-private fun InstructionsPage(exerciseName: String, onStart: () -> Unit, onCancel: () -> Unit) {
+private fun InstructionsPage(
+    exerciseName: String,
+    permissionGranted: Boolean,
+    permanentlyDenied: Boolean,
+    onRequestPermission: () -> Unit,
+    onStart: () -> Unit,
+    onCancel: () -> Unit
+) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -199,39 +255,47 @@ private fun InstructionsPage(exerciseName: String, onStart: () -> Unit, onCancel
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Step cards
-        CalibrationStep(number = "1", text = "PUT YOUR PHONE IN YOUR POCKET")
-        Spacer(modifier = Modifier.height(12.dp))
-        CalibrationStep(number = "2", text = "DO A FEW ${exerciseName.uppercase()} REPS")
-        Spacer(modifier = Modifier.height(12.dp))
-        CalibrationStep(number = "3", text = "TAKE OUT YOUR PHONE AND TAP STOP")
+        if (permanentlyDenied) {
+            // Permission permanently denied — explain and offer settings link
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(KineticSurfaceContainer, RoundedCornerShape(12.dp))
+                    .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                    .padding(20.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Sensor access denied.",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Black),
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Calibration and accelerometer mode require sensor access. Enable the Body Sensors permission in Settings to use this feature.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = KineticOnSurfaceVariant
+                    )
+                }
+            }
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-        Text(
-            text = "We'll measure your movement to set detection sensitivity.",
-            style = MaterialTheme.typography.bodySmall,
-            color = KineticOnSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // START button
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .background(KineticGreen, RoundedCornerShape(12.dp))
-                .clickable { onStart() },
-            contentAlignment = Alignment.Center
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .background(KineticGreen, RoundedCornerShape(12.dp))
+                    .clickable {
+                        val intent = Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", context.packageName, null)
+                        )
+                        context.startActivity(intent)
+                    },
+                contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "START",
+                    text = "OPEN SETTINGS",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Black,
                         fontStyle = FontStyle.Italic,
@@ -239,12 +303,76 @@ private fun InstructionsPage(exerciseName: String, onStart: () -> Unit, onCancel
                     ),
                     color = KineticBackground
                 )
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = KineticBackground,
-                    modifier = Modifier.size(22.dp)
-                )
+            }
+        } else {
+            // Normal instructions
+            CalibrationStep(number = "1", text = "PUT YOUR PHONE IN YOUR POCKET")
+            Spacer(modifier = Modifier.height(12.dp))
+            CalibrationStep(number = "2", text = "DO A FEW ${exerciseName.uppercase()} REPS")
+            Spacer(modifier = Modifier.height(12.dp))
+            CalibrationStep(number = "3", text = "TAKE OUT YOUR PHONE AND TAP STOP")
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "We'll measure your movement to set detection sensitivity.",
+                style = MaterialTheme.typography.bodySmall,
+                color = KineticOnSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            if (!permissionGranted) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(KineticSurfaceContainer, RoundedCornerShape(12.dp))
+                        .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "Sensor access is required to detect movement. Tap below to grant it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = KineticOnSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // START / GRANT ACCESS button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .background(KineticGreen, RoundedCornerShape(12.dp))
+                    .clickable { if (permissionGranted) onStart() else onRequestPermission() },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (permissionGranted) "START" else "GRANT SENSOR ACCESS",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Black,
+                            fontStyle = FontStyle.Italic,
+                            fontSize = 18.sp
+                        ),
+                        color = KineticBackground
+                    )
+                    if (permissionGranted) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = KineticBackground,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
             }
         }
 
