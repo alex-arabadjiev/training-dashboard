@@ -82,8 +82,8 @@ private sealed class CalibrationUiState {
     data class Success(
         val repCount: Int,
         val threshold: Float,
-        val peaks: List<com.example.trainingdashboard.sensor.TimestampedSample>,
-        val rawSamples: List<com.example.trainingdashboard.sensor.TimestampedSample>
+        val peaks: List<TimestampedSample>,
+        val rawSamples: List<TimestampedSample>
     ) : CalibrationUiState()
     object Failed : CalibrationUiState()
 }
@@ -118,7 +118,7 @@ fun CalibrationScreen(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         val activity = context as? ComponentActivity
-        val canAskAgain = activity?.shouldShowRequestPermissionRationale(Manifest.permission.BODY_SENSORS) ?: true
+        val canAskAgain = activity?.shouldShowRequestPermissionRationale(Manifest.permission.BODY_SENSORS) ?: false
         val status = resolveSensorPermissionStatus(isGranted = granted, canAskAgain = canAskAgain)
         permissionGranted = status == SensorPermissionStatus.Granted
         permanentlyDenied = status == SensorPermissionStatus.PermanentlyDenied
@@ -671,7 +671,7 @@ private fun SuccessPage(
         )
         Spacer(modifier = Modifier.height(48.dp))
         Text(
-            text = if (copied) "copied" else "copy debug log",
+            text = if (copied) "COPIED" else "COPY DEBUG LOG",
             style = MaterialTheme.typography.labelSmall,
             color = KineticOnSurfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.clickable {

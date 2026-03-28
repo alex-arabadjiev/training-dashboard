@@ -34,11 +34,13 @@ class CalibrationPermissionTest {
     }
 
     @Test
-    fun deniedRetryableWhenActivityIsUnavailable() {
-        // Safe default: canAskAgain = true when Activity reference is null
-        val canAskAgain = null ?: true
+    fun permanentlyDeniedWhenActivityIsUnavailable() {
+        // Call-site fallback: canAskAgain = false when Activity reference is null,
+        // so an unresolvable state is treated as permanently denied rather than
+        // silently re-requesting indefinitely.
+        val canAskAgain = false // mirrors `activity?.shouldShowRationale() ?: false`
         val status = resolveSensorPermissionStatus(isGranted = false, canAskAgain = canAskAgain)
-        assertEquals(SensorPermissionStatus.DeniedRetryable, status)
+        assertEquals(SensorPermissionStatus.PermanentlyDenied, status)
     }
 
     // -------------------------------------------------------------------------
