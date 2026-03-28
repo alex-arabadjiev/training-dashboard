@@ -112,12 +112,11 @@ fun CalibrationScreen(
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        permissionGranted = granted
-        if (!granted) {
-            val activity = context as? ComponentActivity
-            val canAskAgain = activity?.shouldShowRequestPermissionRationale(Manifest.permission.BODY_SENSORS) ?: true
-            permanentlyDenied = !canAskAgain
-        }
+        val activity = context as? ComponentActivity
+        val canAskAgain = activity?.shouldShowRequestPermissionRationale(Manifest.permission.BODY_SENSORS) ?: true
+        val status = resolveSensorPermissionStatus(isGranted = granted, canAskAgain = canAskAgain)
+        permissionGranted = status == SensorPermissionStatus.Granted
+        permanentlyDenied = status == SensorPermissionStatus.PermanentlyDenied
     }
 
     // Request permission immediately when arriving at instructions
