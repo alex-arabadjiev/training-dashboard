@@ -48,7 +48,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -79,10 +78,11 @@ import com.example.trainingdashboard.ui.theme.KineticGreen
 import com.example.trainingdashboard.ui.theme.KineticOnSurfaceVariant
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainer
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainerHigh
+import com.example.trainingdashboard.sensor.RepPeakDetector
+import com.example.trainingdashboard.sensor.TimestampedSample
 import com.example.trainingdashboard.viewmodel.ExerciseState
 import kotlin.math.sqrt
 
-private const val REP_DEBOUNCE_MS = 600L
 
 @Composable
 fun LogRepsScreen(
@@ -135,7 +135,6 @@ fun LogRepsScreen(
     }
 
     // Rep detection
-    var lastRepTimestampMs by remember { mutableLongStateOf(0L) }
     DisposableEffect(accelerometerMode) {
         if (!accelerometerMode || !sensorAvailable || accelThreshold == null) {
             return@DisposableEffect onDispose {}
@@ -143,13 +142,14 @@ fun LogRepsScreen(
         val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
             ?: return@DisposableEffect onDispose {}
 
+        val detector = RepPeakDetector(threshold = accelThreshold)
+
         val listener = object : SensorEventListener {
             override fun onSensorChanged(event: SensorEvent) {
                 val x = event.values[0]; val y = event.values[1]; val z = event.values[2]
                 val magnitude = sqrt(x * x + y * y + z * z)
                 val now = System.currentTimeMillis()
-                if (magnitude > accelThreshold && now - lastRepTimestampMs > REP_DEBOUNCE_MS) {
-                    lastRepTimestampMs = now
+                if (detector.onSample(TimestampedSample(timestampMs = now, magnitude = magnitude))) {
                     val newCount = (currentCount + 1).coerceAtMost(exercise.targetCount)
                     when {
                         newCount >= exercise.targetCount -> {

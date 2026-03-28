@@ -20,7 +20,7 @@ object RepCalibrator {
     private const val NOISE_FLOOR = 5f
     private const val MIN_PEAK_SEPARATION_MS = 600L
     private const val MIN_PEAKS = 3
-    private const val THRESHOLD_FACTOR = 0.55f
+    private const val THRESHOLD_FACTOR = 0.85f
 
     fun analyze(samples: List<TimestampedSample>): CalibrationResult {
         if (samples.size < SMOOTHING_WINDOW) return CalibrationResult.Failed

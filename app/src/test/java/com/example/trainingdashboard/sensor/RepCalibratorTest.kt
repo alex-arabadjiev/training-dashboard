@@ -109,7 +109,7 @@ class RepCalibratorTest {
 
     @Test
     fun thresholdIsMedianPeakTimesFactorForOddPeakCount() {
-        // Three equal peaks at 20 m/s² → median = 20 → threshold ≈ 20 × 0.55 = 11.0
+        // Three equal peaks at 20 m/s² → median = 20 → threshold ≈ 20 × 0.85 = 17.0
         val samples = buildSignalWithPeaks(
             durationMs = 6000L,
             peakTimesMs = listOf(1000L, 2500L, 4000L),
