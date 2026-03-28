@@ -305,11 +305,11 @@ private fun InstructionsPage(
             }
         } else {
             // Normal instructions
-            CalibrationStep(number = "1", text = "PUT YOUR PHONE IN YOUR POCKET")
+            CalibrationStep(number = "1", text = "GET INTO YOUR TRAINING POSITION")
             Spacer(modifier = Modifier.height(12.dp))
             CalibrationStep(number = "2", text = "DO A FEW ${exerciseName.uppercase()} REPS")
             Spacer(modifier = Modifier.height(12.dp))
-            CalibrationStep(number = "3", text = "TAKE OUT YOUR PHONE AND TAP STOP")
+            CalibrationStep(number = "3", text = "FINISH YOUR REPS AND TAP STOP")
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -459,7 +459,7 @@ private fun CountdownPage(secondsLeft: Int, onCancel: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Pocket your phone now",
+            text = "Get into position now",
             style = MaterialTheme.typography.bodySmall,
             color = KineticOnSurfaceVariant
         )
