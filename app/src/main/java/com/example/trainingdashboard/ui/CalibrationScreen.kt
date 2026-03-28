@@ -79,7 +79,12 @@ private sealed class CalibrationUiState {
     data class Countdown(val secondsLeft: Int) : CalibrationUiState()
     object Recording : CalibrationUiState()
     object Analyzing : CalibrationUiState()
-    data class Success(val repCount: Int, val threshold: Float) : CalibrationUiState()
+    data class Success(
+        val repCount: Int,
+        val threshold: Float,
+        val peaks: List<com.example.trainingdashboard.sensor.TimestampedSample>,
+        val rawSamples: List<com.example.trainingdashboard.sensor.TimestampedSample>
+    ) : CalibrationUiState()
     object Failed : CalibrationUiState()
 }
 
@@ -170,10 +175,16 @@ fun CalibrationScreen(
     // Run analysis when state transitions to Analyzing
     LaunchedEffect(uiState) {
         if (uiState !is CalibrationUiState.Analyzing) return@LaunchedEffect
-        val result = RepCalibrator.analyze(samples.toList())
+        val frozenSamples = samples.toList()
+        val result = RepCalibrator.analyze(frozenSamples)
         uiState = when (result) {
-            is CalibrationResult.Success -> CalibrationUiState.Success(result.repCount, result.threshold)
-            is CalibrationResult.Failed  -> CalibrationUiState.Failed
+            is CalibrationResult.Success -> CalibrationUiState.Success(
+                repCount = result.repCount,
+                threshold = result.threshold,
+                peaks = result.peaks,
+                rawSamples = frozenSamples
+            )
+            is CalibrationResult.Failed -> CalibrationUiState.Failed
         }
     }
 
@@ -209,7 +220,13 @@ fun CalibrationScreen(
                 onCancel = onCancel
             )
             is CalibrationUiState.Analyzing -> AnalyzingPage()
-            is CalibrationUiState.Success -> SuccessPage(repCount = state.repCount)
+            is CalibrationUiState.Success -> SuccessPage(
+                exerciseName = exerciseName,
+                repCount = state.repCount,
+                threshold = state.threshold,
+                peaks = state.peaks,
+                rawSamples = state.rawSamples
+            )
             is CalibrationUiState.Failed -> FailedPage(
                 onRetry = { uiState = CalibrationUiState.Instructions },
                 onCancel = onCancel
@@ -609,7 +626,23 @@ private fun AnalyzingPage() {
 }
 
 @Composable
-private fun SuccessPage(repCount: Int) {
+private fun SuccessPage(
+    exerciseName: String,
+    repCount: Int,
+    threshold: Float,
+    peaks: List<TimestampedSample>,
+    rawSamples: List<TimestampedSample>
+) {
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+
+    LaunchedEffect(copied) {
+        if (copied) {
+            delay(2000L)
+            copied = false
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -636,6 +669,47 @@ private fun SuccessPage(repCount: Int) {
             style = MaterialTheme.typography.bodySmall,
             color = KineticGreen
         )
+        Spacer(modifier = Modifier.height(48.dp))
+        Text(
+            text = if (copied) "copied" else "copy debug log",
+            style = MaterialTheme.typography.labelSmall,
+            color = KineticOnSurfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.clickable {
+                clipboard.setText(
+                    androidx.compose.ui.text.AnnotatedString(
+                        buildDebugLog(exerciseName, repCount, threshold, peaks, rawSamples)
+                    )
+                )
+                copied = true
+            }
+        )
+    }
+}
+
+private fun buildDebugLog(
+    exerciseName: String,
+    repCount: Int,
+    threshold: Float,
+    peaks: List<TimestampedSample>,
+    rawSamples: List<TimestampedSample>
+): String {
+    val t0 = rawSamples.firstOrNull()?.timestampMs ?: 0L
+    val durationMs = (rawSamples.lastOrNull()?.timestampMs ?: 0L) - t0
+    return buildString {
+        appendLine("=== Calibration Debug Log ===")
+        appendLine("Exercise: $exerciseName")
+        appendLine("Reps: $repCount | Threshold: ${"%.2f".format(threshold)} m/s²")
+        appendLine("Duration: ${durationMs}ms | Samples: ${rawSamples.size}")
+        appendLine()
+        appendLine("Accepted peaks:")
+        peaks.forEachIndexed { i, p ->
+            appendLine("  ${i + 1}: t=+${p.timestampMs - t0}ms  mag=${"%.2f".format(p.magnitude)}")
+        }
+        appendLine()
+        appendLine("Raw signal (offset_ms,magnitude):")
+        rawSamples.forEach { s ->
+            appendLine("${s.timestampMs - t0},${"%.3f".format(s.magnitude)}")
+        }
     }
 }
 

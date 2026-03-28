@@ -5,7 +5,12 @@ import kotlin.math.sqrt
 data class TimestampedSample(val timestampMs: Long, val magnitude: Float)
 
 sealed class CalibrationResult {
-    data class Success(val threshold: Float, val repCount: Int) : CalibrationResult()
+    data class Success(
+        val threshold: Float,
+        val repCount: Int,
+        /** Accepted peaks used to derive the threshold, in chronological order. */
+        val peaks: List<TimestampedSample>
+    ) : CalibrationResult()
     object Failed : CalibrationResult()
 }
 
@@ -26,7 +31,7 @@ object RepCalibrator {
         if (peaks.size < MIN_PEAKS) return CalibrationResult.Failed
 
         val threshold = median(peaks.map { it.magnitude }) * THRESHOLD_FACTOR
-        return CalibrationResult.Success(threshold = threshold, repCount = peaks.size)
+        return CalibrationResult.Success(threshold = threshold, repCount = peaks.size, peaks = peaks)
     }
 
     private fun smooth(samples: List<TimestampedSample>): List<TimestampedSample> {
