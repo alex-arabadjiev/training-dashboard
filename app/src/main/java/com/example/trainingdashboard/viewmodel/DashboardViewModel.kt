@@ -34,6 +34,7 @@ data class ExerciseState(
 data class DashboardUiState(
     val dayNumber: Int = 0,
     val goalLevel: Int = 1,
+    val dayNumberOffset: Int = 0,
     val exercises: List<ExerciseState> = emptyList(),
     val allCompleted: Boolean = false,
     val reminderHour: Int = 8,
@@ -129,14 +130,17 @@ class DashboardViewModel(
                 prefsRepo.afternoonNudgeMinute,
                 prefsRepo.eveningInterruptHour,
                 prefsRepo.eveningInterruptMinute,
-                prefsRepo.adaptiveTimingEnabled
+                prefsRepo.adaptiveTimingEnabled,
+                prefsRepo.dayNumberOffset
             ) { values ->
                 @Suppress("UNCHECKED_CAST")
                 val completions = values[0] as List<DailyCompletion>
+                val dayOffset = values[8] as Int
                 val exercises = buildExercises(finalGoalLevel, completions)
                 DashboardUiState(
-                    dayNumber = activeDayCount,
+                    dayNumber = activeDayCount + dayOffset,
                     goalLevel = finalGoalLevel,
+                    dayNumberOffset = dayOffset,
                     exercises = exercises,
                     allCompleted = exercises.all { it.isCompleted },
                     reminderHour = values[1] as Int,
@@ -195,6 +199,12 @@ class DashboardViewModel(
         viewModelScope.launch {
             prefsRepo.setGoalLevel(level)
             loadDashboard()
+        }
+    }
+
+    fun setDayNumberOffset(offset: Int) {
+        viewModelScope.launch {
+            prefsRepo.setDayNumberOffset(offset.coerceAtLeast(0))
         }
     }
 

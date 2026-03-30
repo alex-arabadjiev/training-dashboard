@@ -45,6 +45,9 @@ class FakePreferencesRepository {
     private val _lastEvaluatedDay = MutableStateFlow(0)
     val lastEvaluatedDay: Flow<Int> = _lastEvaluatedDay
 
+    private val _dayNumberOffset = MutableStateFlow(0)
+    val dayNumberOffset: Flow<Int> = _dayNumberOffset
+
     suspend fun setStartDate(date: LocalDate) {
         _startDate.value = date
     }
@@ -74,6 +77,10 @@ class FakePreferencesRepository {
 
     suspend fun setLastEvaluatedDay(day: Int) {
         _lastEvaluatedDay.value = day
+    }
+
+    suspend fun setDayNumberOffset(offset: Int) {
+        _dayNumberOffset.value = offset
     }
 
     /** Seed a start date so tests can bypass the null-check in ensureStartDate(). */
