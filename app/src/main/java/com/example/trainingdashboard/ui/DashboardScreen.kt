@@ -173,10 +173,14 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
         SettingsBottomSheet(
             state = state,
             onDismiss = { showSettings = false },
-            onSave = { goalLevelText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, adaptiveEnabled ->
+            onSave = { goalLevelText, dayOffsetText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, adaptiveEnabled ->
                 val newLevel = goalLevelText.toIntOrNull()
                 if (newLevel != null && newLevel >= 1) {
                     viewModel.setGoalLevel(newLevel)
+                }
+                val newOffset = dayOffsetText.toIntOrNull()
+                if (newOffset != null) {
+                    viewModel.setDayNumberOffset(newOffset)
                 }
                 viewModel.updateReminderTime(morningH, morningM)
                 viewModel.updateAfternoonNudgeTime(afternoonH, afternoonM)
@@ -194,7 +198,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
 private fun SettingsBottomSheet(
     state: com.example.trainingdashboard.viewmodel.DashboardUiState,
     onDismiss: () -> Unit,
-    onSave: (String, Int, Int, Int, Int, Int, Int, Boolean) -> Unit
+    onSave: (String, String, Int, Int, Int, Int, Int, Int, Boolean) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var adaptiveEnabled by remember { mutableStateOf(state.adaptiveTimingEnabled) }
@@ -326,6 +330,7 @@ private fun SettingsBottomSheet(
                     .background(KineticGreen, RoundedCornerShape(12.dp))
                     .clickable {
                         onSave(
+                            "",
                             "",
                             morningHour, morningMinute,
                             afternoonHour, afternoonMinute,
@@ -509,6 +514,18 @@ private fun SettingsBottomSheet(
     // Set Goal Level dialog
     if (showDayDialog) {
         var goalLevelText by remember { mutableStateOf(state.goalLevel.toString()) }
+        var dayOffsetText by remember { mutableStateOf(state.dayNumberOffset.toString()) }
+        val fieldColors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = KineticGreen,
+            unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
+            cursorColor = KineticGreen,
+            focusedLabelColor = KineticGreen,
+            unfocusedLabelColor = KineticOnSurfaceVariant,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+            focusedContainerColor = KineticBackground,
+            unfocusedContainerColor = KineticBackground,
+        )
         AlertDialog(
             onDismissRequest = { showDayDialog = false },
             containerColor = KineticSurfaceContainer,
@@ -524,34 +541,41 @@ private fun SettingsBottomSheet(
                 )
             },
             text = {
-                OutlinedTextField(
-                    value = goalLevelText,
-                    onValueChange = { value ->
-                        if (value.isEmpty() || value.all { it.isDigit() }) {
-                            goalLevelText = value
-                        }
-                    },
-                    label = {
-                        Text(
-                            text = "GOAL LEVEL",
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = KineticGreen,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
-                        cursorColor = KineticGreen,
-                        focusedLabelColor = KineticGreen,
-                        unfocusedLabelColor = KineticOnSurfaceVariant,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        focusedContainerColor = KineticBackground,
-                        unfocusedContainerColor = KineticBackground,
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    OutlinedTextField(
+                        value = goalLevelText,
+                        onValueChange = { value ->
+                            if (value.isEmpty() || value.all { it.isDigit() }) goalLevelText = value
+                        },
+                        label = {
+                            Text(text = "GOAL LEVEL", style = MaterialTheme.typography.labelSmall)
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = fieldColors
                     )
-                )
+                    OutlinedTextField(
+                        value = dayOffsetText,
+                        onValueChange = { value ->
+                            if (value.isEmpty() || value.all { it.isDigit() }) dayOffsetText = value
+                        },
+                        label = {
+                            Text(text = "DAY OFFSET", style = MaterialTheme.typography.labelSmall)
+                        },
+                        supportingText = {
+                            Text(
+                                text = "Added to your tracked day count",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = KineticOnSurfaceVariant
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = fieldColors
+                    )
+                }
             },
             confirmButton = {
                 Row(
@@ -584,6 +608,7 @@ private fun SettingsBottomSheet(
                             .clickable {
                                 onSave(
                                     goalLevelText,
+                                    dayOffsetText,
                                     morningHour, morningMinute,
                                     afternoonHour, afternoonMinute,
                                     eveningHour, eveningMinute,

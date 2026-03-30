@@ -31,6 +31,7 @@ class PreferencesRepository(private val context: Context) {
         val ACCEL_THRESHOLD_PUSH_UPS = floatPreferencesKey("accel_threshold_push_ups")
         val ACCEL_THRESHOLD_SIT_UPS = floatPreferencesKey("accel_threshold_sit_ups")
         val ACCEL_THRESHOLD_SQUATS = floatPreferencesKey("accel_threshold_squats")
+        val DAY_NUMBER_OFFSET = intPreferencesKey("day_number_offset")
     }
 
     val startDate: Flow<LocalDate?> = context.dataStore.data.map { prefs ->
@@ -115,6 +116,16 @@ class PreferencesRepository(private val context: Context) {
     suspend fun setLastEvaluatedDay(day: Int) {
         context.dataStore.edit { prefs ->
             prefs[Keys.LAST_EVALUATED_DAY] = day
+        }
+    }
+
+    val dayNumberOffset: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[Keys.DAY_NUMBER_OFFSET] ?: 0
+    }
+
+    suspend fun setDayNumberOffset(offset: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.DAY_NUMBER_OFFSET] = offset
         }
     }
 
