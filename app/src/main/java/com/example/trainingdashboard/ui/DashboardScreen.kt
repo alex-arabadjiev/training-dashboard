@@ -173,14 +173,15 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
         SettingsBottomSheet(
             state = state,
             onDismiss = { showSettings = false },
-            onSave = { goalLevelText, dayOffsetText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, adaptiveEnabled ->
+            onSave = { goalLevelText, targetDayText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, adaptiveEnabled ->
                 val newLevel = goalLevelText.toIntOrNull()
                 if (newLevel != null && newLevel >= 1) {
                     viewModel.setGoalLevel(newLevel)
                 }
-                val newOffset = dayOffsetText.toIntOrNull()
-                if (newOffset != null) {
-                    viewModel.setDayNumberOffset(newOffset)
+                val targetDay = targetDayText.toIntOrNull()
+                if (targetDay != null) {
+                    val activeDayCount = state.dayNumber - state.dayNumberOffset
+                    viewModel.setDayNumberOffset(targetDay - activeDayCount)
                 }
                 viewModel.updateReminderTime(morningH, morningM)
                 viewModel.updateAfternoonNudgeTime(afternoonH, afternoonM)
@@ -514,7 +515,7 @@ private fun SettingsBottomSheet(
     // Set Goal Level dialog
     if (showDayDialog) {
         var goalLevelText by remember { mutableStateOf(state.goalLevel.toString()) }
-        var dayOffsetText by remember { mutableStateOf(state.dayNumberOffset.toString()) }
+        var dayOffsetText by remember { mutableStateOf(state.dayNumber.toString()) }
         val fieldColors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = KineticGreen,
             unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
@@ -561,11 +562,11 @@ private fun SettingsBottomSheet(
                             if (value.isEmpty() || value.all { it.isDigit() }) dayOffsetText = value
                         },
                         label = {
-                            Text(text = "DAY OFFSET", style = MaterialTheme.typography.labelSmall)
+                            Text(text = "CURRENT DAY", style = MaterialTheme.typography.labelSmall)
                         },
                         supportingText = {
                             Text(
-                                text = "Added to your tracked day count",
+                                text = "Set your displayed day count directly",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = KineticOnSurfaceVariant
                             )
