@@ -76,9 +76,23 @@ object NotificationHelper {
 
     suspend fun getCompletionState(context: Context, dayNumber: Int): CompletionState {
         val db = AppDatabase.getInstance(context)
+        val prefsRepo = PreferencesRepository(context)
+        val goalLevel = prefsRepo.goalLevel.first() ?: 1
         val completions = db.completionDao().getCompletionsForDaySnapshot(dayNumber)
+        return computeCompletionState(dayNumber, goalLevel, completions)
+    }
+
+    /**
+     * Pure computation extracted for testability.
+     * Uses [goalLevel] (the adaptive goal level) — not [dayNumber] — to determine targets.
+     */
+    internal fun computeCompletionState(
+        dayNumber: Int,
+        goalLevel: Int,
+        completions: List<DailyCompletion>
+    ): CompletionState {
         val completionMap = completions.associateBy { it.exercise }
-        val targets = ExerciseTargets.forDay(dayNumber)
+        val targets = ExerciseTargets.forDay(goalLevel)
 
         val summaries = targets.map { (name, target) ->
             val completion = completionMap[name]
