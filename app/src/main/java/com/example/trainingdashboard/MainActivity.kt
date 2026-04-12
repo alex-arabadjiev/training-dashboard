@@ -13,6 +13,7 @@ import com.example.trainingdashboard.data.PreferencesRepository
 import com.example.trainingdashboard.data.db.AppOpenEvent
 import com.example.trainingdashboard.notification.NotificationHelper
 import com.example.trainingdashboard.notification.ReminderScheduler
+import com.example.trainingdashboard.widget.WidgetUpdater
 import kotlinx.coroutines.flow.first
 import com.example.trainingdashboard.ui.DashboardScreen
 import com.example.trainingdashboard.ui.theme.TrainingDashboardTheme
@@ -45,6 +46,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         recordAppOpen()
+        WidgetUpdater.update(this)
     }
 
     private fun recordAppOpen() {

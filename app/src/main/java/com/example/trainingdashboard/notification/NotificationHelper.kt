@@ -170,4 +170,11 @@ object NotificationHelper {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.notify(notificationId, notification)
     }
+
+    fun cancelTrainingReminders(context: Context) {
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.cancel(MORNING_NOTIFICATION_ID)
+        manager.cancel(AFTERNOON_NOTIFICATION_ID)
+        manager.cancel(EVENING_NOTIFICATION_ID)
+    }
 }

@@ -9,17 +9,22 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import com.example.trainingdashboard.TrainingApp
 import com.example.trainingdashboard.data.ExerciseTargets
+import com.example.trainingdashboard.widget.WidgetUpdater
 import com.example.trainingdashboard.data.GoalTransition
 import com.example.trainingdashboard.data.PreferencesRepository
 import com.example.trainingdashboard.data.db.CompletionDao
 import com.example.trainingdashboard.data.db.DailyCompletion
+import com.example.trainingdashboard.notification.NotificationHelper
 import com.example.trainingdashboard.notification.ReminderScheduler
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -81,6 +86,7 @@ class DashboardViewModel(
     init {
         loadDashboard()
         collectAccelThresholds()
+        cancelNotificationsOnCompletion()
     }
 
     private fun loadDashboard() {
@@ -173,6 +179,7 @@ class DashboardViewModel(
                     completedCount = newCount
                 )
             )
+            WidgetUpdater.update(getApplication())
         }
     }
 
@@ -191,6 +198,7 @@ class DashboardViewModel(
                     completedCount = clampedCount
                 )
             )
+            WidgetUpdater.update(getApplication())
         }
     }
 
@@ -245,6 +253,16 @@ class DashboardViewModel(
             } else {
                 ReminderScheduler.cancelAdaptiveTiming(getApplication())
             }
+        }
+    }
+
+    private fun cancelNotificationsOnCompletion() {
+        viewModelScope.launch {
+            _uiState
+                .map { it.allCompleted }
+                .distinctUntilChanged()
+                .filter { it }
+                .collect { NotificationHelper.cancelTrainingReminders(getApplication()) }
         }
     }
 
