@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.trainingdashboard"
         minSdk = 26
         targetSdk = 34
-        versionCode = 12
-        versionName = "1.3.5"
+        versionCode = 13
+        versionName = "1.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -80,6 +80,8 @@ dependencies {
 
     implementation(libs.datastore.preferences)
     implementation(libs.work.runtime.ktx)
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
