@@ -59,6 +59,35 @@ class DashboardViewModelTest {
         assertEquals("Squats" to 300, targets[2])
     }
 
+    @Test
+    fun `forDay with zero increment returns zero target`() {
+        val increments = mapOf("Push-ups" to 0f, "Sit-ups" to 2.0f, "Squats" to 3.0f)
+        val targets = ExerciseTargets.forDay(5, increments)
+        assertEquals("Push-ups" to 0, targets[0])
+        assertEquals("Sit-ups" to 10, targets[1])
+        assertEquals("Squats" to 15, targets[2])
+    }
+
+    @Test
+    fun `forDay with 0_5 increment rounds at odd levels`() {
+        // Level 3 × 0.5 = 1.5 → rounds to 2
+        val increments = mapOf("Push-ups" to 0.5f, "Sit-ups" to 0.5f, "Squats" to 0.5f)
+        val targets = ExerciseTargets.forDay(3, increments)
+        assertEquals("Push-ups" to 2, targets[0])
+        assertEquals("Sit-ups" to 2, targets[1])
+        assertEquals("Squats" to 2, targets[2])
+    }
+
+    @Test
+    fun `forDay with 0_5 increment rounds at even levels`() {
+        // Level 4 × 0.5 = 2.0 → exactly 2
+        val increments = mapOf("Push-ups" to 0.5f, "Sit-ups" to 0.5f, "Squats" to 0.5f)
+        val targets = ExerciseTargets.forDay(4, increments)
+        assertEquals("Push-ups" to 2, targets[0])
+        assertEquals("Sit-ups" to 2, targets[1])
+        assertEquals("Squats" to 2, targets[2])
+    }
+
     // -------------------------------------------------------------------------
     // Day number computation (mirrors DashboardViewModel.computeDayNumber)
     // -------------------------------------------------------------------------

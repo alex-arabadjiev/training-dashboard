@@ -32,6 +32,9 @@ class PreferencesRepository(private val context: Context) {
         val ACCEL_THRESHOLD_SIT_UPS = floatPreferencesKey("accel_threshold_sit_ups")
         val ACCEL_THRESHOLD_SQUATS = floatPreferencesKey("accel_threshold_squats")
         val DAY_NUMBER_OFFSET = intPreferencesKey("day_number_offset")
+        val EXERCISE_INCREMENT_PUSH_UPS = floatPreferencesKey("exercise_increment_push_ups")
+        val EXERCISE_INCREMENT_SIT_UPS  = floatPreferencesKey("exercise_increment_sit_ups")
+        val EXERCISE_INCREMENT_SQUATS   = floatPreferencesKey("exercise_increment_squats")
     }
 
     val startDate: Flow<LocalDate?> = context.dataStore.data.map { prefs ->
@@ -127,6 +130,29 @@ class PreferencesRepository(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[Keys.DAY_NUMBER_OFFSET] = offset
         }
+    }
+
+    val exerciseIncrements: Flow<Map<String, Float>> = context.dataStore.data.map { prefs ->
+        mapOf(
+            "Push-ups" to (prefs[Keys.EXERCISE_INCREMENT_PUSH_UPS] ?: 1.0f),
+            "Sit-ups"  to (prefs[Keys.EXERCISE_INCREMENT_SIT_UPS]  ?: 2.0f),
+            "Squats"   to (prefs[Keys.EXERCISE_INCREMENT_SQUATS]    ?: 3.0f)
+        )
+    }
+
+    suspend fun setExerciseIncrements(increments: Map<String, Float>) {
+        context.dataStore.edit { prefs ->
+            increments.forEach { (exercise, value) ->
+                prefs[exerciseIncrementKey(exercise)] = value
+            }
+        }
+    }
+
+    private fun exerciseIncrementKey(exercise: String) = when (exercise) {
+        "Push-ups" -> Keys.EXERCISE_INCREMENT_PUSH_UPS
+        "Sit-ups"  -> Keys.EXERCISE_INCREMENT_SIT_UPS
+        "Squats"   -> Keys.EXERCISE_INCREMENT_SQUATS
+        else       -> throw IllegalArgumentException("Unknown exercise: $exercise")
     }
 
     fun accelThreshold(exerciseName: String): Flow<Float?> =

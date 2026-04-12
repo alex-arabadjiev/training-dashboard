@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessibilityNew
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.SportsGymnastics
@@ -34,8 +35,10 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.trainingdashboard.ui.theme.KineticGreen
 import com.example.trainingdashboard.ui.theme.KineticBackground
+import com.example.trainingdashboard.ui.theme.KineticError
+import com.example.trainingdashboard.ui.theme.KineticGreen
+import com.example.trainingdashboard.ui.theme.KineticOnSurfaceVariant
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainer
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainerHigh
 import com.example.trainingdashboard.viewmodel.ExerciseState
@@ -54,6 +57,11 @@ fun ExerciseCard(
     onLogReps: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (exercise.isDisabled) {
+        DisabledExerciseCard(exercise = exercise, modifier = modifier)
+        return
+    }
+
     val progress = if (exercise.targetCount > 0) {
         (exercise.completedCount.toFloat() / exercise.targetCount).coerceIn(0f, 1f)
     } else 0f
@@ -161,6 +169,82 @@ fun ExerciseCard(
                             .background(KineticBackground)
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DisabledExerciseCard(
+    exercise: ExerciseState,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = KineticSurfaceContainer),
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.03f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icon box — muted
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(KineticSurfaceContainerHigh, RoundedCornerShape(12.dp))
+                    .border(1.dp, Color.White.copy(alpha = 0.04f), RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = exerciseIcon(exercise.name),
+                    contentDescription = null,
+                    tint = KineticOnSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // Exercise name + DISABLED label
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = exercise.name.uppercase(),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Black,
+                        fontStyle = FontStyle.Italic,
+                        fontSize = 24.sp,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = KineticOnSurfaceVariant.copy(alpha = 0.4f)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "DISABLED",
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                    color = KineticError
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // Block icon — non-interactive
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(KineticSurfaceContainerHigh.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Block,
+                    contentDescription = "Disabled",
+                    tint = KineticOnSurfaceVariant.copy(alpha = 0.3f),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.example.trainingdashboard.viewmodel
 
+import com.example.trainingdashboard.data.ExerciseTargets
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.LocalDate
@@ -48,6 +49,9 @@ class FakePreferencesRepository {
     private val _dayNumberOffset = MutableStateFlow(0)
     val dayNumberOffset: Flow<Int> = _dayNumberOffset
 
+    private val _exerciseIncrements = MutableStateFlow(ExerciseTargets.DEFAULT_INCREMENTS)
+    val exerciseIncrements: Flow<Map<String, Float>> = _exerciseIncrements
+
     suspend fun setStartDate(date: LocalDate) {
         _startDate.value = date
     }
@@ -81,6 +85,10 @@ class FakePreferencesRepository {
 
     suspend fun setDayNumberOffset(offset: Int) {
         _dayNumberOffset.value = offset
+    }
+
+    suspend fun setExerciseIncrements(increments: Map<String, Float>) {
+        _exerciseIncrements.value = increments
     }
 
     /** Seed a start date so tests can bypass the null-check in ensureStartDate(). */

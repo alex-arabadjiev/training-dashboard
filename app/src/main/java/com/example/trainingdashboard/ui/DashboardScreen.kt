@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.ui.text.style.TextAlign
+import kotlin.math.roundToInt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -66,11 +68,12 @@ import com.example.trainingdashboard.ui.components.CompletionBanner
 import com.example.trainingdashboard.ui.components.DayHeader
 import com.example.trainingdashboard.ui.components.ExerciseCard
 import com.example.trainingdashboard.ui.components.PermissionBanner
-import com.example.trainingdashboard.ui.theme.KineticGreen
 import com.example.trainingdashboard.ui.theme.KineticBackground
+import com.example.trainingdashboard.ui.theme.KineticError
+import com.example.trainingdashboard.ui.theme.KineticGreen
+import com.example.trainingdashboard.ui.theme.KineticOnSurfaceVariant
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainer
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainerHigh
-import com.example.trainingdashboard.ui.theme.KineticOnSurfaceVariant
 import com.example.trainingdashboard.viewmodel.DashboardViewModel
 import com.example.trainingdashboard.viewmodel.ExerciseState
 
@@ -107,11 +110,13 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
             .background(KineticBackground)
     ) {
         if (!state.isLoading) {
-            val totalTarget = state.exercises.sumOf { it.targetCount }
-            val totalCompleted = state.exercises.sumOf { it.completedCount }
-            val progressPercent = if (totalTarget > 0) {
-                (totalCompleted * 100 / totalTarget).coerceIn(0, 100)
-            } else 0
+            val activeExercises = state.exercises.filter { !it.isDisabled && it.targetCount > 0 }
+            val progressPercent = if (activeExercises.isEmpty()) 0 else {
+                val sum = activeExercises.sumOf { ex ->
+                    (ex.completedCount.toFloat() / ex.targetCount).coerceIn(0f, 1f).toDouble()
+                }
+                ((sum / activeExercises.size) * 100).toInt().coerceIn(0, 100)
+            }
 
             Column(
                 modifier = Modifier
@@ -173,7 +178,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
         SettingsBottomSheet(
             state = state,
             onDismiss = { showSettings = false },
-            onSave = { goalLevelText, targetDayText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, adaptiveEnabled ->
+            onSave = { goalLevelText, targetDayText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, adaptiveEnabled, increments ->
                 val newLevel = goalLevelText.toIntOrNull()
                 if (newLevel != null && newLevel >= 1) {
                     viewModel.setGoalLevel(newLevel)
@@ -187,6 +192,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
                 viewModel.updateAfternoonNudgeTime(afternoonH, afternoonM)
                 viewModel.updateEveningInterruptTime(eveningH, eveningM)
                 viewModel.setAdaptiveTimingEnabled(adaptiveEnabled)
+                viewModel.setExerciseIncrements(increments)
 
                 showSettings = false
             }
@@ -199,7 +205,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
 private fun SettingsBottomSheet(
     state: com.example.trainingdashboard.viewmodel.DashboardUiState,
     onDismiss: () -> Unit,
-    onSave: (String, String, Int, Int, Int, Int, Int, Int, Boolean) -> Unit
+    onSave: (String, String, Int, Int, Int, Int, Int, Int, Boolean, Map<String, Float>) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var adaptiveEnabled by remember { mutableStateOf(state.adaptiveTimingEnabled) }
@@ -213,6 +219,10 @@ private fun SettingsBottomSheet(
 
     var editingTimePicker by remember { mutableStateOf<String?>(null) }
     var showDayDialog by remember { mutableStateOf(false) }
+
+    var pushUpsIncrement by remember { mutableStateOf(state.exerciseIncrements["Push-ups"] ?: 1.0f) }
+    var sitUpsIncrement  by remember { mutableStateOf(state.exerciseIncrements["Sit-ups"]  ?: 2.0f) }
+    var squatsIncrement  by remember { mutableStateOf(state.exerciseIncrements["Squats"]   ?: 3.0f) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -321,7 +331,34 @@ private fun SettingsBottomSheet(
                 )
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Exercise increments section
+            Text(
+                text = "EXERCISE INCREMENTS",
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Reps added per level. Set to 0.0 to disable an exercise.",
+                style = MaterialTheme.typography.bodySmall,
+                color = KineticOnSurfaceVariant
+            )
             Spacer(modifier = Modifier.height(16.dp))
+
+            IncrementRow(label = "Push-ups", value = pushUpsIncrement, onValueChange = { pushUpsIncrement = it })
+            Spacer(modifier = Modifier.height(12.dp))
+            IncrementRow(label = "Sit-ups",  value = sitUpsIncrement,  onValueChange = { sitUpsIncrement  = it })
+            Spacer(modifier = Modifier.height(12.dp))
+            IncrementRow(label = "Squats",   value = squatsIncrement,  onValueChange = { squatsIncrement  = it })
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // SAVE CHANGES button
             Box(
@@ -330,13 +367,19 @@ private fun SettingsBottomSheet(
                     .height(64.dp)
                     .background(KineticGreen, RoundedCornerShape(12.dp))
                     .clickable {
+                        val increments = mapOf(
+                            "Push-ups" to roundTo1dp(pushUpsIncrement),
+                            "Sit-ups"  to roundTo1dp(sitUpsIncrement),
+                            "Squats"   to roundTo1dp(squatsIncrement)
+                        )
                         onSave(
                             "",
                             "",
                             morningHour, morningMinute,
                             afternoonHour, afternoonMinute,
                             eveningHour, eveningMinute,
-                            adaptiveEnabled
+                            adaptiveEnabled,
+                            increments
                         )
                     },
                 contentAlignment = Alignment.Center
@@ -607,13 +650,19 @@ private fun SettingsBottomSheet(
                             .height(48.dp)
                             .background(KineticGreen, RoundedCornerShape(8.dp))
                             .clickable {
+                                val increments = mapOf(
+                                    "Push-ups" to roundTo1dp(pushUpsIncrement),
+                                    "Sit-ups"  to roundTo1dp(sitUpsIncrement),
+                                    "Squats"   to roundTo1dp(squatsIncrement)
+                                )
                                 onSave(
                                     goalLevelText,
                                     dayOffsetText,
                                     morningHour, morningMinute,
                                     afternoonHour, afternoonMinute,
                                     eveningHour, eveningMinute,
-                                    adaptiveEnabled
+                                    adaptiveEnabled,
+                                    increments
                                 )
                                 showDayDialog = false
                             },
@@ -644,6 +693,104 @@ private fun SettingsBottomSheet(
             },
             dismissButton = null
         )
+    }
+}
+
+private fun roundTo1dp(value: Float): Float = (value * 10).roundToInt() / 10f
+
+@Composable
+private fun IncrementRow(
+    label: String,
+    value: Float,
+    onValueChange: (Float) -> Unit
+) {
+    var textValue by remember { mutableStateOf("%.1f".format(value)) }
+    val isDisabled = value == 0f
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                color = if (isDisabled) KineticOnSurfaceVariant.copy(alpha = 0.4f)
+                        else MaterialTheme.colorScheme.onSurface
+            )
+            if (isDisabled) {
+                Text(
+                    text = "DISABLED",
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                    color = KineticError
+                )
+            }
+        }
+
+        // − button
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(KineticSurfaceContainerHigh, RoundedCornerShape(8.dp))
+                .clickable {
+                    val newVal = roundTo1dp((value - 0.1f).coerceAtLeast(0f))
+                    onValueChange(newVal)
+                    textValue = "%.1f".format(newVal)
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "−",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        OutlinedTextField(
+            value = textValue,
+            onValueChange = { raw ->
+                textValue = raw
+                raw.toFloatOrNull()?.let { parsed ->
+                    onValueChange(roundTo1dp(parsed.coerceIn(0f, 5f)))
+                }
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            singleLine = true,
+            modifier = Modifier.width(72.dp),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = KineticGreen,
+                unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
+                cursorColor = KineticGreen,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                focusedContainerColor = KineticBackground,
+                unfocusedContainerColor = KineticBackground,
+            )
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // + button
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(KineticSurfaceContainerHigh, RoundedCornerShape(8.dp))
+                .clickable {
+                    val newVal = roundTo1dp((value + 0.1f).coerceAtMost(5f))
+                    onValueChange(newVal)
+                    textValue = "%.1f".format(newVal)
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "+",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
 
