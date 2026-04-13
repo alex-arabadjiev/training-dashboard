@@ -61,12 +61,23 @@ class TrainingWidget : GlanceAppWidget() {
         val startDate = prefs.startDate.first() ?: return null
         val goalLevel = prefs.goalLevel.first() ?: 1
         val dayOffset = prefs.dayNumberOffset.first()
+        val increments = prefs.exerciseIncrements.first()
+        val enabled = prefs.exerciseEnabled.first()
+        val baseReps = prefs.baseReps.first()
+        val goalTransitionIncrements = increments.mapValues { (name, inc) ->
+            when {
+                enabled[name] == false -> 0f
+                inc == 0f -> ExerciseTargets.DEFAULT_INCREMENTS[name] ?: 1.0f
+                else -> inc
+            }
+        }
         val todayCalendarDay = ChronoUnit.DAYS.between(startDate, LocalDate.now()).toInt() + 1
         val todayCompletions = dao.getCompletionsForDaySnapshot(todayCalendarDay)
         val allCompletions = dao.getAllCompletedExercises()
-        val activeDayCount = GoalTransition.computeActiveDayCount(allCompletions)
+        val activeDayCount = GoalTransition.computeActiveDayCount(allCompletions, goalTransitionIncrements)
         val completionMap = todayCompletions.associateBy { it.exercise }
-        val exercises = ExerciseTargets.forDay(goalLevel).map { (name, target) ->
+        val exercises = ExerciseTargets.forDay(goalLevel, increments, baseReps).mapNotNull { (name, target) ->
+            if (enabled[name] == false) return@mapNotNull null
             val row = completionMap[name]
             WidgetExercise(
                 name = name,
@@ -121,9 +132,12 @@ private fun WidgetContent(data: WidgetData?) {
 
         val allDone = data.exercises.all { it.isDone }
         val anyStarted = data.exercises.any { it.completedCount > 0 }
-        val totalReps = data.exercises.sumOf { it.target }
-        val completedReps = data.exercises.sumOf { minOf(it.completedCount, it.target) }
-        val progressPct = if (totalReps > 0) (completedReps * 100) / totalReps else 0
+        val progressPct = if (data.exercises.isEmpty()) 0 else {
+            val sum = data.exercises.sumOf { ex ->
+                (minOf(ex.completedCount, ex.target).toFloat() / ex.target).toDouble()
+            }
+            ((sum / data.exercises.size) * 100).toInt().coerceIn(0, 100)
+        }
         val filledSegments = progressPct / 10
 
         // 35/65 split: left panel is narrower (just TRAINING + DAY N),

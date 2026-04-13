@@ -1,5 +1,6 @@
 package com.example.trainingdashboard.viewmodel
 
+import com.example.trainingdashboard.data.ExerciseTargets
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.LocalDate
@@ -48,6 +49,19 @@ class FakePreferencesRepository {
     private val _dayNumberOffset = MutableStateFlow(0)
     val dayNumberOffset: Flow<Int> = _dayNumberOffset
 
+    private val _exerciseIncrements = MutableStateFlow(ExerciseTargets.DEFAULT_INCREMENTS)
+    val exerciseIncrements: Flow<Map<String, Float>> = _exerciseIncrements
+
+    private val _exerciseEnabled = MutableStateFlow(
+        ExerciseTargets.EXERCISE_NAMES.associateWith { true }
+    )
+    val exerciseEnabled: Flow<Map<String, Boolean>> = _exerciseEnabled
+
+    private val _baseReps = MutableStateFlow<Map<String, Int?>>(
+        ExerciseTargets.EXERCISE_NAMES.associateWith { null }
+    )
+    val baseReps: Flow<Map<String, Int?>> = _baseReps
+
     suspend fun setStartDate(date: LocalDate) {
         _startDate.value = date
     }
@@ -81,6 +95,18 @@ class FakePreferencesRepository {
 
     suspend fun setDayNumberOffset(offset: Int) {
         _dayNumberOffset.value = offset
+    }
+
+    suspend fun setExerciseIncrements(increments: Map<String, Float>) {
+        _exerciseIncrements.value = increments
+    }
+
+    suspend fun setExerciseEnabled(enabled: Map<String, Boolean>) {
+        _exerciseEnabled.value = enabled
+    }
+
+    suspend fun setBaseReps(exercise: String, reps: Int) {
+        _baseReps.value = _baseReps.value.toMutableMap().also { it[exercise] = reps }
     }
 
     /** Seed a start date so tests can bypass the null-check in ensureStartDate(). */

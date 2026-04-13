@@ -207,4 +207,61 @@ class GoalTransitionTest {
         )
         assertEquals(0.5, GoalTransition.computeProgress(completions, goalLevel = 5), 0.0001)
     }
+
+    // -------------------------------------------------------------------------
+    // Custom increments — disabled exercises (increment = 0)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun progressIsZeroWhenAllIncrementsAreZero() {
+        val increments = mapOf("Push-ups" to 0f, "Sit-ups" to 0f, "Squats" to 0f)
+        val completions = allThree(day = 1)
+        assertEquals(0.0, GoalTransition.computeProgress(completions, goalLevel = 5, increments = increments), 0.0001)
+    }
+
+    @Test
+    fun activeDayCountIsZeroWhenAllIncrementsAreZero() {
+        val increments = mapOf("Push-ups" to 0f, "Sit-ups" to 0f, "Squats" to 0f)
+        val completions = allThree(day = 1)
+        assertEquals(0, GoalTransition.computeActiveDayCount(completions, increments = increments))
+    }
+
+    @Test
+    fun progressIgnoresDisabledExercise() {
+        // Squats disabled (increment 0), only Push-ups (1) and Sit-ups (2) active → total weight 3
+        // Only Push-ups completed → 1/3 ≈ 33.3% — exactly at hold threshold
+        val increments = mapOf("Push-ups" to 1.0f, "Sit-ups" to 2.0f, "Squats" to 0f)
+        val completions = listOf(
+            completion(1, "Push-ups", true),
+            completion(1, "Sit-ups", false),
+            completion(1, "Squats", false)
+        )
+        val progress = GoalTransition.computeProgress(completions, goalLevel = 5, increments = increments)
+        assertEquals(1.0 / 3.0, progress, 0.0001)
+        assertEquals(5, GoalTransition.nextLevel(5, progress))
+    }
+
+    @Test
+    fun activeDayCountWithDisabledExerciseUsesRemainingWeight() {
+        // Squats disabled — threshold is 1/3 of (1+2) = 1.0
+        // Day 1: Push-ups only (weight 1) → exactly at threshold → active
+        val increments = mapOf("Push-ups" to 1.0f, "Sit-ups" to 2.0f, "Squats" to 0f)
+        val completions = listOf(completion(1, "Push-ups", true))
+        assertEquals(1, GoalTransition.computeActiveDayCount(completions, increments = increments))
+    }
+
+    @Test
+    fun progressWithCustomIncrementsHalfStep() {
+        // All three at increment 0.5 → total weight 1.5
+        // Squats (0.5) completed → 0.5/1.5 ≈ 33.3% — hold
+        val increments = mapOf("Push-ups" to 0.5f, "Sit-ups" to 0.5f, "Squats" to 0.5f)
+        val completions = listOf(
+            completion(1, "Push-ups", false),
+            completion(1, "Sit-ups", false),
+            completion(1, "Squats", true)
+        )
+        val progress = GoalTransition.computeProgress(completions, goalLevel = 5, increments = increments)
+        assertEquals(1.0 / 3.0, progress, 0.0001)
+        assertEquals(5, GoalTransition.nextLevel(5, progress))
+    }
 }

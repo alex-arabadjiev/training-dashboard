@@ -32,6 +32,15 @@ class PreferencesRepository(private val context: Context) {
         val ACCEL_THRESHOLD_SIT_UPS = floatPreferencesKey("accel_threshold_sit_ups")
         val ACCEL_THRESHOLD_SQUATS = floatPreferencesKey("accel_threshold_squats")
         val DAY_NUMBER_OFFSET = intPreferencesKey("day_number_offset")
+        val EXERCISE_INCREMENT_PUSH_UPS = floatPreferencesKey("exercise_increment_push_ups")
+        val EXERCISE_INCREMENT_SIT_UPS  = floatPreferencesKey("exercise_increment_sit_ups")
+        val EXERCISE_INCREMENT_SQUATS   = floatPreferencesKey("exercise_increment_squats")
+        val EXERCISE_ENABLED_PUSH_UPS   = booleanPreferencesKey("exercise_enabled_push_ups")
+        val EXERCISE_ENABLED_SIT_UPS    = booleanPreferencesKey("exercise_enabled_sit_ups")
+        val EXERCISE_ENABLED_SQUATS     = booleanPreferencesKey("exercise_enabled_squats")
+        val BASE_REPS_PUSH_UPS          = intPreferencesKey("base_reps_push_ups")
+        val BASE_REPS_SIT_UPS           = intPreferencesKey("base_reps_sit_ups")
+        val BASE_REPS_SQUATS            = intPreferencesKey("base_reps_squats")
     }
 
     val startDate: Flow<LocalDate?> = context.dataStore.data.map { prefs ->
@@ -127,6 +136,73 @@ class PreferencesRepository(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[Keys.DAY_NUMBER_OFFSET] = offset
         }
+    }
+
+    val exerciseIncrements: Flow<Map<String, Float>> = context.dataStore.data.map { prefs ->
+        mapOf(
+            "Push-ups" to (prefs[Keys.EXERCISE_INCREMENT_PUSH_UPS] ?: 1.0f),
+            "Sit-ups"  to (prefs[Keys.EXERCISE_INCREMENT_SIT_UPS]  ?: 2.0f),
+            "Squats"   to (prefs[Keys.EXERCISE_INCREMENT_SQUATS]    ?: 3.0f)
+        )
+    }
+
+    suspend fun setExerciseIncrements(increments: Map<String, Float>) {
+        context.dataStore.edit { prefs ->
+            increments.forEach { (exercise, value) ->
+                prefs[exerciseIncrementKey(exercise)] = value
+            }
+        }
+    }
+
+    private fun exerciseIncrementKey(exercise: String) = when (exercise) {
+        "Push-ups" -> Keys.EXERCISE_INCREMENT_PUSH_UPS
+        "Sit-ups"  -> Keys.EXERCISE_INCREMENT_SIT_UPS
+        "Squats"   -> Keys.EXERCISE_INCREMENT_SQUATS
+        else       -> throw IllegalArgumentException("Unknown exercise: $exercise")
+    }
+
+    val exerciseEnabled: Flow<Map<String, Boolean>> = context.dataStore.data.map { prefs ->
+        mapOf(
+            "Push-ups" to (prefs[Keys.EXERCISE_ENABLED_PUSH_UPS] ?: true),
+            "Sit-ups"  to (prefs[Keys.EXERCISE_ENABLED_SIT_UPS]  ?: true),
+            "Squats"   to (prefs[Keys.EXERCISE_ENABLED_SQUATS]    ?: true)
+        )
+    }
+
+    suspend fun setExerciseEnabled(enabled: Map<String, Boolean>) {
+        context.dataStore.edit { prefs ->
+            enabled.forEach { (exercise, value) ->
+                prefs[exerciseEnabledKey(exercise)] = value
+            }
+        }
+    }
+
+    private fun exerciseEnabledKey(exercise: String) = when (exercise) {
+        "Push-ups" -> Keys.EXERCISE_ENABLED_PUSH_UPS
+        "Sit-ups"  -> Keys.EXERCISE_ENABLED_SIT_UPS
+        "Squats"   -> Keys.EXERCISE_ENABLED_SQUATS
+        else       -> throw IllegalArgumentException("Unknown exercise: $exercise")
+    }
+
+    val baseReps: Flow<Map<String, Int?>> = context.dataStore.data.map { prefs ->
+        mapOf(
+            "Push-ups" to prefs[Keys.BASE_REPS_PUSH_UPS],
+            "Sit-ups"  to prefs[Keys.BASE_REPS_SIT_UPS],
+            "Squats"   to prefs[Keys.BASE_REPS_SQUATS]
+        )
+    }
+
+    suspend fun setBaseReps(exercise: String, reps: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[baseRepsKey(exercise)] = reps
+        }
+    }
+
+    private fun baseRepsKey(exercise: String) = when (exercise) {
+        "Push-ups" -> Keys.BASE_REPS_PUSH_UPS
+        "Sit-ups"  -> Keys.BASE_REPS_SIT_UPS
+        "Squats"   -> Keys.BASE_REPS_SQUATS
+        else       -> throw IllegalArgumentException("Unknown exercise: $exercise")
     }
 
     fun accelThreshold(exerciseName: String): Flow<Float?> =
