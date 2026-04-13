@@ -62,14 +62,22 @@ class TrainingWidget : GlanceAppWidget() {
         val goalLevel = prefs.goalLevel.first() ?: 1
         val dayOffset = prefs.dayNumberOffset.first()
         val increments = prefs.exerciseIncrements.first()
+        val enabled = prefs.exerciseEnabled.first()
+        val baseReps = prefs.baseReps.first()
+        val goalTransitionIncrements = increments.mapValues { (name, inc) ->
+            when {
+                enabled[name] == false -> 0f
+                inc == 0f -> ExerciseTargets.DEFAULT_INCREMENTS[name] ?: 1.0f
+                else -> inc
+            }
+        }
         val todayCalendarDay = ChronoUnit.DAYS.between(startDate, LocalDate.now()).toInt() + 1
         val todayCompletions = dao.getCompletionsForDaySnapshot(todayCalendarDay)
         val allCompletions = dao.getAllCompletedExercises()
-        val activeDayCount = GoalTransition.computeActiveDayCount(allCompletions, increments)
+        val activeDayCount = GoalTransition.computeActiveDayCount(allCompletions, goalTransitionIncrements)
         val completionMap = todayCompletions.associateBy { it.exercise }
-        val exercises = ExerciseTargets.forDay(goalLevel, increments).mapNotNull { (name, target) ->
-            val increment = increments[name] ?: 1.0f
-            if (increment == 0f) return@mapNotNull null
+        val exercises = ExerciseTargets.forDay(goalLevel, increments, baseReps).mapNotNull { (name, target) ->
+            if (enabled[name] == false) return@mapNotNull null
             val row = completionMap[name]
             WidgetExercise(
                 name = name,

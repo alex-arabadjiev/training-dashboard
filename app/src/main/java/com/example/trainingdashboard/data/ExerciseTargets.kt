@@ -14,9 +14,15 @@ object ExerciseTargets {
 
     fun forDay(
         goalLevel: Int,
-        increments: Map<String, Float> = DEFAULT_INCREMENTS
+        increments: Map<String, Float> = DEFAULT_INCREMENTS,
+        baseReps: Map<String, Int?> = emptyMap()
     ): List<Pair<String, Int>> = EXERCISE_NAMES.map { name ->
         val increment = increments[name] ?: (DEFAULT_INCREMENTS[name] ?: 1.0f)
-        name to (goalLevel * increment).roundToInt()
+        val target = when {
+            increment > 0f -> (goalLevel * increment).roundToInt()
+            else -> baseReps[name]
+                ?: (goalLevel * (DEFAULT_INCREMENTS[name] ?: 1.0f)).roundToInt()
+        }
+        name to target
     }
 }

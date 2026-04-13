@@ -44,6 +44,7 @@ data class DashboardUiState(
     val exercises: List<ExerciseState> = emptyList(),
     val allCompleted: Boolean = false,
     val exerciseIncrements: Map<String, Float> = ExerciseTargets.DEFAULT_INCREMENTS,
+    val exerciseEnabled: Map<String, Boolean> = ExerciseTargets.EXERCISE_NAMES.associateWith { true },
     val reminderHour: Int = 8,
     val reminderMinute: Int = 0,
     val afternoonNudgeHour: Int = 14,
@@ -98,6 +99,8 @@ class DashboardViewModel(
             todayCalendarDay = computeDayNumber(startDate)
 
             val increments = prefsRepo.exerciseIncrements.first()
+            val enabled = prefsRepo.exerciseEnabled.first()
+            val baseReps = prefsRepo.baseReps.first()
 
             val storedGoalLevel = prefsRepo.goalLevel.first()
             var lastEvaluatedDay = prefsRepo.lastEvaluatedDay.first()
@@ -114,11 +117,21 @@ class DashboardViewModel(
                 resolvedGoalLevel = storedGoalLevel
             }
 
+            // For goal transition: disabled exercises have weight 0,
+            // flat exercises (increment=0, enabled) use their default weight
+            val goalTransitionIncrements = increments.mapValues { (name, inc) ->
+                when {
+                    enabled[name] == false -> 0f
+                    inc == 0f -> ExerciseTargets.DEFAULT_INCREMENTS[name] ?: 1.0f
+                    else -> inc
+                }
+            }
+
             // Catch-up loop — evaluate each unevaluated past day in order
             var runningLevel = resolvedGoalLevel
             for (day in (lastEvaluatedDay + 1)..(todayCalendarDay - 1)) {
                 val dayCompletions = completionDao.getCompletionsForDaySnapshot(day)
-                val progress = GoalTransition.computeProgress(dayCompletions, runningLevel, increments)
+                val progress = GoalTransition.computeProgress(dayCompletions, runningLevel, goalTransitionIncrements)
                 runningLevel = GoalTransition.nextLevel(runningLevel, progress)
             }
 
@@ -128,7 +141,7 @@ class DashboardViewModel(
 
             // Compute active day count from all completed exercises
             val allCompleted = completionDao.getAllCompletedExercises()
-            val activeDayCount = GoalTransition.computeActiveDayCount(allCompleted, increments)
+            val activeDayCount = GoalTransition.computeActiveDayCount(allCompleted, goalTransitionIncrements)
 
             val finalGoalLevel = runningLevel
 
@@ -146,7 +159,7 @@ class DashboardViewModel(
                 @Suppress("UNCHECKED_CAST")
                 val completions = values[0] as List<DailyCompletion>
                 val dayOffset = values[8] as Int
-                val exercises = buildExercises(finalGoalLevel, completions, increments)
+                val exercises = buildExercises(finalGoalLevel, completions, increments, enabled, baseReps)
                 val activeExercises = exercises.filter { !it.isDisabled }
                 DashboardUiState(
                     dayNumber = activeDayCount + dayOffset,
@@ -155,6 +168,7 @@ class DashboardViewModel(
                     exercises = exercises,
                     allCompleted = activeExercises.isNotEmpty() && activeExercises.all { it.isCompleted },
                     exerciseIncrements = increments,
+                    exerciseEnabled = enabled,
                     reminderHour = values[1] as Int,
                     reminderMinute = values[2] as Int,
                     afternoonNudgeHour = values[3] as Int,
@@ -212,7 +226,26 @@ class DashboardViewModel(
 
     fun setExerciseIncrements(increments: Map<String, Float>) {
         viewModelScope.launch {
+            val prevIncrements = _uiState.value.exerciseIncrements
+            val currentExercises = _uiState.value.exercises
+            // Snapshot current target for any exercise whose increment transitions to 0
+            increments.forEach { (name, newInc) ->
+                val prevInc = prevIncrements[name] ?: ExerciseTargets.DEFAULT_INCREMENTS[name] ?: 1.0f
+                if (newInc == 0f && prevInc != 0f) {
+                    val currentTarget = currentExercises.find { it.name == name }?.targetCount
+                    if (currentTarget != null && currentTarget > 0) {
+                        prefsRepo.setBaseReps(name, currentTarget)
+                    }
+                }
+            }
             prefsRepo.setExerciseIncrements(increments)
+            loadDashboard()
+        }
+    }
+
+    fun setExerciseEnabled(enabled: Map<String, Boolean>) {
+        viewModelScope.launch {
+            prefsRepo.setExerciseEnabled(enabled)
             loadDashboard()
         }
     }
@@ -315,18 +348,19 @@ class DashboardViewModel(
     private fun buildExercises(
         goalLevel: Int,
         completions: List<DailyCompletion>,
-        increments: Map<String, Float>
+        increments: Map<String, Float>,
+        enabled: Map<String, Boolean>,
+        baseReps: Map<String, Int?>
     ): List<ExerciseState> {
         val completionMap = completions.associateBy { it.exercise }
-        return ExerciseTargets.forDay(goalLevel, increments).map { (name, target) ->
+        return ExerciseTargets.forDay(goalLevel, increments, baseReps).map { (name, target) ->
             val completion = completionMap[name]
-            val increment = increments[name] ?: (ExerciseTargets.DEFAULT_INCREMENTS[name] ?: 1.0f)
             ExerciseState(
                 name = name,
                 targetCount = target,
                 completedCount = completion?.completedCount ?: 0,
                 isCompleted = completion?.completed ?: false,
-                isDisabled = increment == 0f
+                isDisabled = enabled[name] == false
             )
         }
     }

@@ -60,10 +60,21 @@ class DashboardViewModelTest {
     }
 
     @Test
-    fun `forDay with zero increment returns zero target`() {
+    fun `forDay with zero increment falls back to default-increment target when no baseReps`() {
+        // increment=0, no baseReps → fallback: goalLevel × DEFAULT_INCREMENTS = 5 × 1.0 = 5
         val increments = mapOf("Push-ups" to 0f, "Sit-ups" to 2.0f, "Squats" to 3.0f)
         val targets = ExerciseTargets.forDay(5, increments)
-        assertEquals("Push-ups" to 0, targets[0])
+        assertEquals("Push-ups" to 5, targets[0])
+        assertEquals("Sit-ups" to 10, targets[1])
+        assertEquals("Squats" to 15, targets[2])
+    }
+
+    @Test
+    fun `forDay with zero increment uses baseReps when provided`() {
+        val increments = mapOf("Push-ups" to 0f, "Sit-ups" to 2.0f, "Squats" to 3.0f)
+        val baseReps = mapOf("Push-ups" to 11, "Sit-ups" to null, "Squats" to null)
+        val targets = ExerciseTargets.forDay(5, increments, baseReps)
+        assertEquals("Push-ups" to 11, targets[0]) // frozen at 11
         assertEquals("Sit-ups" to 10, targets[1])
         assertEquals("Squats" to 15, targets[2])
     }

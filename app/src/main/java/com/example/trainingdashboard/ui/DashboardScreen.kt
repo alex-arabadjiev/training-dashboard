@@ -178,7 +178,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
         SettingsBottomSheet(
             state = state,
             onDismiss = { showSettings = false },
-            onSave = { goalLevelText, targetDayText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, adaptiveEnabled, increments ->
+            onSave = { goalLevelText, targetDayText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, adaptiveEnabled, increments, enabled ->
                 val newLevel = goalLevelText.toIntOrNull()
                 if (newLevel != null && newLevel >= 1) {
                     viewModel.setGoalLevel(newLevel)
@@ -193,6 +193,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
                 viewModel.updateEveningInterruptTime(eveningH, eveningM)
                 viewModel.setAdaptiveTimingEnabled(adaptiveEnabled)
                 viewModel.setExerciseIncrements(increments)
+                viewModel.setExerciseEnabled(enabled)
 
                 showSettings = false
             }
@@ -205,7 +206,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
 private fun SettingsBottomSheet(
     state: com.example.trainingdashboard.viewmodel.DashboardUiState,
     onDismiss: () -> Unit,
-    onSave: (String, String, Int, Int, Int, Int, Int, Int, Boolean, Map<String, Float>) -> Unit
+    onSave: (String, String, Int, Int, Int, Int, Int, Int, Boolean, Map<String, Float>, Map<String, Boolean>) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var adaptiveEnabled by remember { mutableStateOf(state.adaptiveTimingEnabled) }
@@ -223,6 +224,9 @@ private fun SettingsBottomSheet(
     var pushUpsIncrement by remember { mutableStateOf(state.exerciseIncrements["Push-ups"] ?: 1.0f) }
     var sitUpsIncrement  by remember { mutableStateOf(state.exerciseIncrements["Sit-ups"]  ?: 2.0f) }
     var squatsIncrement  by remember { mutableStateOf(state.exerciseIncrements["Squats"]   ?: 3.0f) }
+    var pushUpsEnabled   by remember { mutableStateOf(state.exerciseEnabled["Push-ups"] ?: true) }
+    var sitUpsEnabled    by remember { mutableStateOf(state.exerciseEnabled["Sit-ups"]  ?: true) }
+    var squatsEnabled    by remember { mutableStateOf(state.exerciseEnabled["Squats"]   ?: true) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -346,17 +350,26 @@ private fun SettingsBottomSheet(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Reps added per level. Set to 0.0 to disable an exercise.",
+                text = "Reps added per level. Toggle to enable/disable an exercise.",
                 style = MaterialTheme.typography.bodySmall,
                 color = KineticOnSurfaceVariant
             )
             Spacer(modifier = Modifier.height(16.dp))
 
-            IncrementRow(label = "Push-ups", value = pushUpsIncrement, onValueChange = { pushUpsIncrement = it })
+            IncrementRow(
+                label = "Push-ups", value = pushUpsIncrement, onValueChange = { pushUpsIncrement = it },
+                enabled = pushUpsEnabled, onEnabledChange = { pushUpsEnabled = it }
+            )
             Spacer(modifier = Modifier.height(12.dp))
-            IncrementRow(label = "Sit-ups",  value = sitUpsIncrement,  onValueChange = { sitUpsIncrement  = it })
+            IncrementRow(
+                label = "Sit-ups",  value = sitUpsIncrement,  onValueChange = { sitUpsIncrement  = it },
+                enabled = sitUpsEnabled,  onEnabledChange = { sitUpsEnabled  = it }
+            )
             Spacer(modifier = Modifier.height(12.dp))
-            IncrementRow(label = "Squats",   value = squatsIncrement,  onValueChange = { squatsIncrement  = it })
+            IncrementRow(
+                label = "Squats",   value = squatsIncrement,  onValueChange = { squatsIncrement  = it },
+                enabled = squatsEnabled,  onEnabledChange = { squatsEnabled  = it }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -372,6 +385,11 @@ private fun SettingsBottomSheet(
                             "Sit-ups"  to roundTo1dp(sitUpsIncrement),
                             "Squats"   to roundTo1dp(squatsIncrement)
                         )
+                        val enabled = mapOf(
+                            "Push-ups" to pushUpsEnabled,
+                            "Sit-ups"  to sitUpsEnabled,
+                            "Squats"   to squatsEnabled
+                        )
                         onSave(
                             "",
                             "",
@@ -379,7 +397,8 @@ private fun SettingsBottomSheet(
                             afternoonHour, afternoonMinute,
                             eveningHour, eveningMinute,
                             adaptiveEnabled,
-                            increments
+                            increments,
+                            enabled
                         )
                     },
                 contentAlignment = Alignment.Center
@@ -655,6 +674,11 @@ private fun SettingsBottomSheet(
                                     "Sit-ups"  to roundTo1dp(sitUpsIncrement),
                                     "Squats"   to roundTo1dp(squatsIncrement)
                                 )
+                                val enabled = mapOf(
+                                    "Push-ups" to pushUpsEnabled,
+                                    "Sit-ups"  to sitUpsEnabled,
+                                    "Squats"   to squatsEnabled
+                                )
                                 onSave(
                                     goalLevelText,
                                     dayOffsetText,
@@ -662,7 +686,8 @@ private fun SettingsBottomSheet(
                                     afternoonHour, afternoonMinute,
                                     eveningHour, eveningMinute,
                                     adaptiveEnabled,
-                                    increments
+                                    increments,
+                                    enabled
                                 )
                                 showDayDialog = false
                             },
@@ -702,23 +727,25 @@ private fun roundTo1dp(value: Float): Float = (value * 10).roundToInt() / 10f
 private fun IncrementRow(
     label: String,
     value: Float,
-    onValueChange: (Float) -> Unit
+    onValueChange: (Float) -> Unit,
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit
 ) {
     var textValue by remember { mutableStateOf("%.1f".format(value)) }
-    val isDisabled = value == 0f
+    val contentAlpha = if (enabled) 1f else 0.35f
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Exercise name + DISABLED label
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label.uppercase(),
                 style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
-                color = if (isDisabled) KineticOnSurfaceVariant.copy(alpha = 0.4f)
-                        else MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
             )
-            if (isDisabled) {
+            if (!enabled) {
                 Text(
                     text = "DISABLED",
                     style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
@@ -727,22 +754,39 @@ private fun IncrementRow(
             }
         }
 
+        // Enable/disable toggle
+        Switch(
+            checked = enabled,
+            onCheckedChange = onEnabledChange,
+            colors = SwitchDefaults.colors(
+                checkedTrackColor = KineticGreen,
+                checkedThumbColor = KineticBackground,
+                uncheckedTrackColor = KineticSurfaceContainerHigh,
+                uncheckedThumbColor = KineticOnSurfaceVariant
+            )
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
         // − button
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .background(KineticSurfaceContainerHigh, RoundedCornerShape(8.dp))
-                .clickable {
+                .background(
+                    KineticSurfaceContainerHigh.copy(alpha = contentAlpha),
+                    RoundedCornerShape(8.dp)
+                )
+                .then(if (enabled) Modifier.clickable {
                     val newVal = roundTo1dp((value - 0.1f).coerceAtLeast(0f))
                     onValueChange(newVal)
                     textValue = "%.1f".format(newVal)
-                },
+                } else Modifier),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = "−",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
             )
         }
 
@@ -751,11 +795,14 @@ private fun IncrementRow(
         OutlinedTextField(
             value = textValue,
             onValueChange = { raw ->
-                textValue = raw
-                raw.toFloatOrNull()?.let { parsed ->
-                    onValueChange(roundTo1dp(parsed.coerceIn(0f, 5f)))
+                if (enabled) {
+                    textValue = raw
+                    raw.toFloatOrNull()?.let { parsed ->
+                        onValueChange(roundTo1dp(parsed.coerceIn(0f, 5f)))
+                    }
                 }
             },
+            enabled = enabled,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true,
             modifier = Modifier.width(72.dp),
@@ -763,11 +810,14 @@ private fun IncrementRow(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = KineticGreen,
                 unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
+                disabledBorderColor = Color.White.copy(alpha = 0.04f),
                 cursorColor = KineticGreen,
                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha),
                 focusedContainerColor = KineticBackground,
                 unfocusedContainerColor = KineticBackground,
+                disabledContainerColor = KineticBackground,
             )
         )
 
@@ -777,18 +827,21 @@ private fun IncrementRow(
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .background(KineticSurfaceContainerHigh, RoundedCornerShape(8.dp))
-                .clickable {
+                .background(
+                    KineticSurfaceContainerHigh.copy(alpha = contentAlpha),
+                    RoundedCornerShape(8.dp)
+                )
+                .then(if (enabled) Modifier.clickable {
                     val newVal = roundTo1dp((value + 0.1f).coerceAtMost(5f))
                     onValueChange(newVal)
                     textValue = "%.1f".format(newVal)
-                },
+                } else Modifier),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = "+",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
             )
         }
     }
