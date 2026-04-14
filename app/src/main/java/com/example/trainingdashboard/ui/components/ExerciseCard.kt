@@ -14,11 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.SportsGymnastics
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -30,11 +27,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.trainingdashboard.R
 import com.example.trainingdashboard.ui.theme.KineticBackground
 import com.example.trainingdashboard.ui.theme.KineticError
 import com.example.trainingdashboard.ui.theme.KineticGreen
@@ -43,11 +41,11 @@ import com.example.trainingdashboard.ui.theme.KineticSurfaceContainer
 import com.example.trainingdashboard.ui.theme.KineticSurfaceContainerHigh
 import com.example.trainingdashboard.viewmodel.ExerciseState
 
-private fun exerciseIcon(name: String): ImageVector = when {
-    name.contains("push", ignoreCase = true) -> Icons.Default.FitnessCenter
-    name.contains("sit", ignoreCase = true) -> Icons.Default.SportsGymnastics
-    name.contains("squat", ignoreCase = true) -> Icons.Default.AccessibilityNew
-    else -> Icons.Default.FitnessCenter
+private fun exerciseIconRes(name: String): Int = when {
+    name.contains("push", ignoreCase = true) -> R.drawable.ic_push_ups
+    name.contains("sit", ignoreCase = true) -> R.drawable.ic_sit_ups
+    name.contains("squat", ignoreCase = true) -> R.drawable.ic_squats
+    else -> R.drawable.ic_push_ups
 }
 
 @Composable
@@ -88,7 +86,7 @@ fun ExerciseCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = exerciseIcon(exercise.name),
+                    painter = painterResource(exerciseIconRes(exercise.name)),
                     contentDescription = null,
                     tint = KineticGreen,
                     modifier = Modifier.size(28.dp)
@@ -200,7 +198,7 @@ private fun DisabledExerciseCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = exerciseIcon(exercise.name),
+                    painter = painterResource(exerciseIconRes(exercise.name)),
                     contentDescription = null,
                     tint = KineticOnSurfaceVariant.copy(alpha = 0.4f),
                     modifier = Modifier.size(28.dp)
