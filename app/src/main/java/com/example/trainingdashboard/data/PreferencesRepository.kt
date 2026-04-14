@@ -25,7 +25,6 @@ class PreferencesRepository(private val context: Context) {
         val AFTERNOON_NUDGE_MINUTE = intPreferencesKey("afternoon_nudge_minute")
         val EVENING_INTERRUPT_HOUR = intPreferencesKey("evening_interrupt_hour")
         val EVENING_INTERRUPT_MINUTE = intPreferencesKey("evening_interrupt_minute")
-        val ADAPTIVE_TIMING_ENABLED = booleanPreferencesKey("adaptive_timing_enabled")
         val GOAL_LEVEL = intPreferencesKey("goal_level")
         val LAST_EVALUATED_DAY = intPreferencesKey("last_evaluated_day")
         val ACCEL_THRESHOLD_PUSH_UPS = floatPreferencesKey("accel_threshold_push_ups")
@@ -95,16 +94,6 @@ class PreferencesRepository(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[Keys.EVENING_INTERRUPT_HOUR] = hour
             prefs[Keys.EVENING_INTERRUPT_MINUTE] = minute
-        }
-    }
-
-    val adaptiveTimingEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
-        prefs[Keys.ADAPTIVE_TIMING_ENABLED] ?: false
-    }
-
-    suspend fun setAdaptiveTimingEnabled(enabled: Boolean) {
-        context.dataStore.edit { prefs ->
-            prefs[Keys.ADAPTIVE_TIMING_ENABLED] = enabled
         }
     }
 

@@ -37,9 +37,6 @@ class FakePreferencesRepository {
     private val _eveningInterruptMinute = MutableStateFlow(0)
     val eveningInterruptMinute: Flow<Int> = _eveningInterruptMinute
 
-    private val _adaptiveTimingEnabled = MutableStateFlow(false)
-    val adaptiveTimingEnabled: Flow<Boolean> = _adaptiveTimingEnabled
-
     private val _goalLevel = MutableStateFlow<Int?>(null)
     val goalLevel: Flow<Int?> = _goalLevel
 
@@ -79,10 +76,6 @@ class FakePreferencesRepository {
     suspend fun setEveningInterruptTime(hour: Int, minute: Int) {
         _eveningInterruptHour.value = hour
         _eveningInterruptMinute.value = minute
-    }
-
-    suspend fun setAdaptiveTimingEnabled(enabled: Boolean) {
-        _adaptiveTimingEnabled.value = enabled
     }
 
     suspend fun setGoalLevel(level: Int) {

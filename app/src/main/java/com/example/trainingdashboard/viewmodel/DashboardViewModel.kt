@@ -51,7 +51,6 @@ data class DashboardUiState(
     val afternoonNudgeMinute: Int = 0,
     val eveningInterruptHour: Int = 20,
     val eveningInterruptMinute: Int = 0,
-    val adaptiveTimingEnabled: Boolean = false,
     val isLoading: Boolean = true
 )
 
@@ -131,6 +130,13 @@ class DashboardViewModel(
             var runningLevel = resolvedGoalLevel
             for (day in (lastEvaluatedDay + 1)..(todayCalendarDay - 1)) {
                 val dayCompletions = completionDao.getCompletionsForDaySnapshot(day)
+                if (dayCompletions.isEmpty()) {
+                    completionDao.upsertCompletions(
+                        ExerciseTargets.EXERCISE_NAMES.map { name ->
+                            DailyCompletion(dayNumber = day, exercise = name, completed = false, completedCount = 0)
+                        }
+                    )
+                }
                 val progress = GoalTransition.computeProgress(dayCompletions, runningLevel, goalTransitionIncrements)
                 runningLevel = GoalTransition.nextLevel(runningLevel, progress)
             }
@@ -153,12 +159,11 @@ class DashboardViewModel(
                 prefsRepo.afternoonNudgeMinute,
                 prefsRepo.eveningInterruptHour,
                 prefsRepo.eveningInterruptMinute,
-                prefsRepo.adaptiveTimingEnabled,
                 prefsRepo.dayNumberOffset
             ) { values ->
                 @Suppress("UNCHECKED_CAST")
                 val completions = values[0] as List<DailyCompletion>
-                val dayOffset = values[8] as Int
+                val dayOffset = values[7] as Int
                 val exercises = buildExercises(finalGoalLevel, completions, increments, enabled, baseReps)
                 val activeExercises = exercises.filter { !it.isDisabled }
                 DashboardUiState(
@@ -175,7 +180,6 @@ class DashboardViewModel(
                     afternoonNudgeMinute = values[4] as Int,
                     eveningInterruptHour = values[5] as Int,
                     eveningInterruptMinute = values[6] as Int,
-                    adaptiveTimingEnabled = values[7] as Boolean,
                     isLoading = false
                 )
             }.collect { state ->
@@ -289,18 +293,6 @@ class DashboardViewModel(
                 eveningInterruptHour = hour, eveningInterruptMinute = minute
             )
             ReminderScheduler.scheduleEveningInterrupt(getApplication(), hour, minute)
-        }
-    }
-
-    fun setAdaptiveTimingEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            prefsRepo.setAdaptiveTimingEnabled(enabled)
-            _uiState.value = _uiState.value.copy(adaptiveTimingEnabled = enabled)
-            if (enabled) {
-                ReminderScheduler.scheduleAdaptiveTiming(getApplication())
-            } else {
-                ReminderScheduler.cancelAdaptiveTiming(getApplication())
-            }
         }
     }
 

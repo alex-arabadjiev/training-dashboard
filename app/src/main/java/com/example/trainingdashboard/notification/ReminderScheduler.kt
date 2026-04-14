@@ -19,7 +19,6 @@ object ReminderScheduler {
 
     private const val MORNING_WORK = "training_daily_reminder"
     private const val AFTERNOON_WORK = "training_afternoon_nudge"
-    private const val ADAPTIVE_WORK = "training_adaptive_timing"
 
     private const val EVENING_ALARM_REQUEST_CODE = 100
     private const val SNOOZE_ALARM_REQUEST_CODE = 101
@@ -55,10 +54,6 @@ object ReminderScheduler {
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)
     }
 
-    fun scheduleAdaptiveTiming(context: Context) {
-        scheduleDailyWorker<AdaptiveTimingWorker>(context, ADAPTIVE_WORK, 3, 0)
-    }
-
     fun scheduleSnooze(context: Context, delayMinutes: Int) {
         val alarmManager = context.getSystemService(AlarmManager::class.java)
 
@@ -92,10 +87,6 @@ object ReminderScheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.cancel(pendingIntent)
-    }
-
-    fun cancelAdaptiveTiming(context: Context) {
-        WorkManager.getInstance(context).cancelUniqueWork(ADAPTIVE_WORK)
     }
 
     private inline fun <reified W : androidx.work.ListenableWorker> scheduleDailyWorker(

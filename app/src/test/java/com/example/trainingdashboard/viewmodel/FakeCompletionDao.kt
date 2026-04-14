@@ -18,6 +18,13 @@ class FakeCompletionDao : CompletionDao {
     override suspend fun getAllCompletedExercises(): List<DailyCompletion> =
         completions.value.filter { it.completed }
 
+    override suspend fun upsertCompletions(completions: List<DailyCompletion>) {
+        completions.forEach { upsertCompletion(it) }
+    }
+
+    override fun getExerciseHistory(): Flow<List<DailyCompletion>> =
+        completions.map { list -> list.sortedBy { it.dayNumber } }
+
     override suspend fun upsertCompletion(completion: DailyCompletion) {
         val current = completions.value.toMutableList()
         val idx = current.indexOfFirst {

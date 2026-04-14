@@ -178,7 +178,7 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
         SettingsBottomSheet(
             state = state,
             onDismiss = { showSettings = false },
-            onSave = { goalLevelText, targetDayText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, adaptiveEnabled, increments, enabled ->
+            onSave = { goalLevelText, targetDayText, morningH, morningM, afternoonH, afternoonM, eveningH, eveningM, increments, enabled ->
                 val newLevel = goalLevelText.toIntOrNull()
                 if (newLevel != null && newLevel >= 1) {
                     viewModel.setGoalLevel(newLevel)
@@ -191,7 +191,6 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
                 viewModel.updateReminderTime(morningH, morningM)
                 viewModel.updateAfternoonNudgeTime(afternoonH, afternoonM)
                 viewModel.updateEveningInterruptTime(eveningH, eveningM)
-                viewModel.setAdaptiveTimingEnabled(adaptiveEnabled)
                 viewModel.setExerciseIncrements(increments)
                 viewModel.setExerciseEnabled(enabled)
 
@@ -206,10 +205,9 @@ fun DashboardScreen(viewModel: DashboardViewModel = viewModel(factory = Dashboar
 private fun SettingsBottomSheet(
     state: com.example.trainingdashboard.viewmodel.DashboardUiState,
     onDismiss: () -> Unit,
-    onSave: (String, String, Int, Int, Int, Int, Int, Int, Boolean, Map<String, Float>, Map<String, Boolean>) -> Unit
+    onSave: (String, String, Int, Int, Int, Int, Int, Int, Map<String, Float>, Map<String, Boolean>) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var adaptiveEnabled by remember { mutableStateOf(state.adaptiveTimingEnabled) }
 
     var morningHour by remember { mutableStateOf(state.reminderHour) }
     var morningMinute by remember { mutableStateOf(state.reminderMinute) }
@@ -303,38 +301,6 @@ private fun SettingsBottomSheet(
             Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
-            // Adaptive Timing toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "ADAPTIVE TIMING",
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Auto-adjust morning reminder based on when you train",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = KineticOnSurfaceVariant
-                    )
-                }
-                Switch(
-                    checked = adaptiveEnabled,
-                    onCheckedChange = { adaptiveEnabled = it },
-                    colors = SwitchDefaults.colors(
-                        checkedTrackColor = KineticGreen,
-                        checkedThumbColor = KineticBackground
-                    )
-                )
-            }
-
             Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
             Spacer(modifier = Modifier.height(20.dp))
@@ -396,7 +362,6 @@ private fun SettingsBottomSheet(
                             morningHour, morningMinute,
                             afternoonHour, afternoonMinute,
                             eveningHour, eveningMinute,
-                            adaptiveEnabled,
                             increments,
                             enabled
                         )
@@ -685,7 +650,6 @@ private fun SettingsBottomSheet(
                                     morningHour, morningMinute,
                                     afternoonHour, afternoonMinute,
                                     eveningHour, eveningMinute,
-                                    adaptiveEnabled,
                                     increments,
                                     enabled
                                 )

@@ -22,4 +22,10 @@ interface CompletionDao {
 
     @Query("SELECT * FROM daily_completions WHERE completed = 1")
     suspend fun getAllCompletedExercises(): List<DailyCompletion>
+
+    @Upsert
+    suspend fun upsertCompletions(completions: List<DailyCompletion>)
+
+    @Query("SELECT * FROM daily_completions ORDER BY dayNumber ASC")
+    fun getExerciseHistory(): Flow<List<DailyCompletion>>
 }
