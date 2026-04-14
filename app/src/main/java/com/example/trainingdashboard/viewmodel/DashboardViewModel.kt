@@ -131,6 +131,13 @@ class DashboardViewModel(
             var runningLevel = resolvedGoalLevel
             for (day in (lastEvaluatedDay + 1)..(todayCalendarDay - 1)) {
                 val dayCompletions = completionDao.getCompletionsForDaySnapshot(day)
+                if (dayCompletions.isEmpty()) {
+                    completionDao.upsertCompletions(
+                        ExerciseTargets.EXERCISE_NAMES.map { name ->
+                            DailyCompletion(dayNumber = day, exercise = name, completed = false, completedCount = 0)
+                        }
+                    )
+                }
                 val progress = GoalTransition.computeProgress(dayCompletions, runningLevel, goalTransitionIncrements)
                 runningLevel = GoalTransition.nextLevel(runningLevel, progress)
             }
